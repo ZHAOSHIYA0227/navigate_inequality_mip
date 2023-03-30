@@ -19,6 +19,7 @@ reg_dam_plot = function(spec, dir ) {
            title = title) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
+      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5),
             legend.position = "bottom")
     
@@ -40,6 +41,7 @@ reg_dam_plot = function(spec, dir ) {
            title = title) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
+      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5),
             legend.position = "bottom")
   }
@@ -72,6 +74,7 @@ gini_plot = function(spec, dir) {
            title = title) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
+      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5),
             legend.position = "bottom")
     
@@ -93,6 +96,7 @@ gini_plot = function(spec, dir) {
            title = title) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
+      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5),
             legend.position = "bottom")
   }
@@ -197,6 +201,7 @@ decile_plot = function (spec, dir) {
     scale_shape_manual(name = "Models", values = mod_letters_utf) +
     facet_wrap(~ Region, ncol = 5) +
     scale_x_continuous(limits = c(2020, 2100), breaks = c(2020, 2060, 2100)) +
+    theme_bw() +
     theme(panel.spacing.x = unit(6, "mm"),
           legend.position="bottom",
           plot.title = element_text(hjust = 0.5))
@@ -224,6 +229,7 @@ decile_plot = function (spec, dir) {
       scale_shape_manual(name = "Models", values = mod_letters_utf) +
       facet_wrap(~ Region, ncol = 5) +
       scale_x_continuous(limits = c(2020, 2100), breaks = c(2020, 2060, 2100)) +
+      theme_bw() +
       theme(panel.spacing.x = unit(6, "mm"),
             legend.position="bottom",
             plot.title = element_text(hjust = 0.5))
@@ -263,6 +269,7 @@ decile_plot_sel_years = function(spec, dir) {
       scale_pattern_manual(name = "Scenario", values = c("stripe", "plasma")) +
       facet_wrap(~ Region, ncol = 5) +
       scale_x_discrete(guide = guide_axis(n.dodge=2)) +
+      theme_bw() +
       theme(panel.spacing.x = unit(6, "mm"),
             legend.position="bottom",
             plot.title = element_text(hjust = 0.5))
@@ -288,6 +295,7 @@ decile_plot_sel_years = function(spec, dir) {
     scale_pattern_manual(name = "Scenario", values = c("stripe", "plasma")) +
     facet_wrap(~ Region, ncol = 5) +
     scale_x_discrete(guide = guide_axis(n.dodge=2)) +
+   theme_bw() +
     theme(panel.spacing.x = unit(6, "mm"),
           legend.position="bottom",
           plot.title = element_text(hjust = 0.5))

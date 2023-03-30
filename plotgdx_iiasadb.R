@@ -27,7 +27,7 @@ figure_format <- "png"
 convert_pdftopng <- F #converts all created pdfs to png for better quality (needs pdftopng.exe in your PATH. Download from http://www.xpdfreader.com/download.html)
 saveplot <- function(plotname, text_size=12, width=12, height=8, plot_title = T){
   if(!dir.exists(file.path(graphdir))){dir.create(file.path(graphdir))}
-  print(last_plot())
+  print(last_plot() + theme_bw())
   ggsave(filename=file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", figure_format)), plot = if(plot_title){last_plot()}else{last_plot()} + theme(text = element_text(size=text_size)), width=width, height=height)
   if(figure_format=="pdf" & convert_pdftopng) shell(str_glue('pdftopng.exe {file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", figure_format))} - > {file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", "png"))}'))
 }
@@ -109,7 +109,7 @@ iiasadb_data <- iiasadb_data %>% mutate(value=ifelse((str_detect(Variable, "Cons
 iiasadb_data <- iiasadb_data %>%
   mutate(Scenario=gsub("WP4_", "", Scenario), Scenario=gsub("distON_", "", Scenario)) %>%
 mutate(Model=str_split(Model, " |-", simplify = T)[,1]) %>%
-  mutate(Model=gsub("GEM", "GEM-E3", Model), Model=gsub("AIM/Hub", "AIM/PHI", Model))
+  mutate(Model=gsub("GEM", "GEM-E3", Model), Model=gsub("AIM/Hub", "AIM/PHI", Model), Model=gsub("REMIND", "ReMIND", Model))
 
 #order scenarios
 print(cat(paste0('"', unique(iiasadb_data$Scenario), '"'), sep = ", "))
@@ -219,7 +219,7 @@ iamc_lineplot(reg=countries_reported, var="Emissions|CO2|Energy and Industrial P
 
 
 #Quantile plot
-iiasadb_data %>% filter(str_detect(Variable, "Consumption\\|D")) %>% filter(Year==2050 & Scenario %in% c("REF", "650", "650_redist")) %>% mutate(dist=as.numeric(gsub("Consumption\\|D", "", Variable)))  %>% filter(!str_detect(Region, "\\|")) %>% ggplot() + geom_line(aes(dist, value, color=Model, linetype=Scenario), size=1) + xlab("Decile") + facet_wrap(Region ~ ., scales = "free_x", nrow = 2) + scale_x_continuous(breaks=seq(1,10)) + theme(legend.position = "bottom") + ylab("Share of total consumption for each decile [%]")
+iiasadb_data %>% filter(str_detect(Variable, "Consumption\\|D")) %>% filter(Year==2050 & Scenario %in% c("REF")) %>% mutate(dist=as.numeric(gsub("Consumption\\|D", "", Variable)))  %>% filter(!str_detect(Region, "\\|")) %>% ggplot() + geom_line(aes(dist, value, color=Model, linetype=Scenario), size=1) + xlab("Decile") + facet_wrap(Region ~ ., scales = "free_x", nrow = 2) + scale_x_continuous(breaks=seq(1,10)) + theme(legend.position = "bottom") + ylab("Share of total consumption for each decile [%]")
 saveplot("Decile Plots for 2050", width=8, height = 5)
 
 
@@ -260,6 +260,8 @@ iiasadb_data <- rbind(iiasadb_data %>% filter(!str_detect(Variable, "Gini")), al
 
 iamc_lineplot(reg=countries_reported_max, var="Gini_recomputed")
 
+#Incidence curve for Deliverable
+iamc_incidence_curve(scen0 = "REF", scen1 = "650", year = 2050, aggregate_use = "Consumption", Regions = countries_reported)
 
 
 
@@ -272,18 +274,18 @@ data_welfare_effect <- data_welfare_effect %>% filter(Variable.x==Variable.y) %>
 data_welfare_effect <- data_welfare_effect %>% group_by(Model, Region, Year) %>% pivot_wider(id_cols = c(Model, Region, Year, Scenario.x, Scenario.y), names_from = Variable, values_from = c(relchange, value.x, value.y))
 #set NAs to zero as zero change for non uploaded scenarios
 data_welfare_effect[is.na(data_welfare_effect)] <- 0
-#for impact scenarios: report avoided impacts 8different from wb2c to impact etc.
+#for impact scenarios: use avoided impacts (different from wb2c to impact etc.
 data_welfare_effect <- data_welfare_effect %>% mutate(Scenario.x=as.character(Scenario.x), Scenario.y=as.character(Scenario.y)) %>% mutate(Scenario.x=ifelse(str_detect(Scenario.y, "impact") & Scenario.x=="REF", "REF_original", ifelse(str_detect(Scenario.y, "impact") & Scenario.x=="REF_impact", "REF", Scenario.x)))
 
 
 
 
-swfrange = .1; xscale=1;  #IMACLIM is an outlier
+swfrange = .1; xscale=1;  
 
 
 #relative changes across all scenarios
-ggplot(data_welfare_effect %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported)) + geom_point(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, color=Model), size=3) + scale_x_continuous(labels=scales::percent, limits = xscale*c(-swfrange, +swfrange)) + scale_y_continuous(labels=scales::percent, limits = c(-swfrange, +swfrange)) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0) + theme_minimal() + labs(x="Equality change", y="GDP change", title="Welfare impact", caption="Scenx to Sceny")
-saveplot("Welfare impact all scenarios")
+#ggplot(data_welfare_effect %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported)) + geom_point(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, color=Model), size=3) + scale_x_continuous(labels=scales::percent, limits = xscale*c(-swfrange, +swfrange)) + scale_y_continuous(labels=scales::percent, limits = c(-swfrange, +swfrange)) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0) + theme_minimal() + labs(x="Equality change", y="GDP change", title="Welfare impact", caption="Scenx to Sceny")
+#saveplot("Welfare impact all scenarios")
 
 #changes across two scenarios
 scen_switches <- list(one=c("REF", "650"), two=c("REF", "650_redist"), three=c("REF_impact", "650_impact_redist"), four=c("REF_impact", "650_impact"))
@@ -299,7 +301,7 @@ for(comp in scen_switches) {
 
 
 #Arrows from REF to WB2C and redist
-ggplot() + theme_minimal() + labs(x="Equality", y="GDP", title="Welfare impact", caption="REF to WB2C to WB2C_redist")  + scale_y_log10() + geom_segment(data = data_welfare_effect %>% filter(Year %in% c(2050, 2100) & Region=="India") %>% filter(Scenario.x=="REF" & Scenario.y=="650"), aes(x = value.x_Equality_index, y = `value.x_GDP|PPP`, xend = value.y_Equality_index, yend = `value.y_GDP|PPP`, color=Model), size=1, arrow = arrow(type = "closed", length = unit(1, "mm"))) + geom_segment(data = data_welfare_effect %>% filter(Year %in% c(2050, 2100) & Region=="India") %>% filter(Scenario.x=="650" & Scenario.y=="650_redist"), aes(x = value.x_Equality_index, y = `value.x_GDP|PPP`, xend = value.y_Equality_index, yend = `value.y_GDP|PPP`, color=Model), size=1, arrow = arrow(type = "open", length = unit(1, "mm"))) + facet_wrap(Year ~  Model, scales = "free")
+#ggplot() + theme_minimal() + labs(x="Equality", y="GDP", title="Welfare impact", caption="REF to WB2C to WB2C_redist")  + scale_y_log10() + geom_segment(data = data_welfare_effect %>% filter(Year %in% c(2050, 2100) & Region=="India") %>% filter(Scenario.x=="REF" & Scenario.y=="650"), aes(x = value.x_Equality_index, y = `value.x_GDP|PPP`, xend = value.y_Equality_index, yend = `value.y_GDP|PPP`, color=Model), size=1, arrow = arrow(type = "closed", length = unit(1, "mm"))) + geom_segment(data = data_welfare_effect %>% filter(Year %in% c(2050, 2100) & Region=="India") %>% filter(Scenario.x=="650" & Scenario.y=="650_redist"), aes(x = value.x_Equality_index, y = `value.x_GDP|PPP`, xend = value.y_Equality_index, yend = `value.y_GDP|PPP`, color=Model), size=1, arrow = arrow(type = "open", length = unit(1, "mm"))) + facet_wrap(Year ~  Model, scales = "free")
 
 #All scenarios per model in LEVELs
 ggplot(data_welfare_effect %>% filter(Year %in% c(2050) & Region=="India" & Scenario.x==Scenario.y & !str_detect(Scenario.x, "OFF"))) + geom_point(aes(x = value.x_Equality_index, y =  `value.x_GDP|PPP`, color=Scenario.x), size=3) + theme_minimal() + labs(x="Equality", y="GDP", title="Welfare in 2050") + facet_wrap(Year ~ Model, scales = "fixed")
@@ -309,48 +311,48 @@ saveplot("Welfare levels")
 
 data_welfare_effect <- data_welfare_effect %>% mutate(Models=ifelse(Model=="RICE50+", "+", substr(Model,1,1)))
 #changes from REF for 3 years all models and all 650 scenarios
-swfrange = 0.05
-ggplot(data_welfare_effect %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("650", "650_redist", "650_impact_redist"))) + geom_point(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, color=Model, size=as.character(Year), shape=Scenario.y)) + scale_size_manual(values = c("2030"=3, "2050"=2, "2100"=1)) + 
-  scale_x_continuous(labels=scales::percent, limits = xscale*c(-swfrange, +swfrange)) + scale_y_continuous(labels=scales::percent, limits = c(-swfrange, +swfrange)) +
-  geom_vline(xintercept = 0) + geom_hline(yintercept = 0) + theme_minimal() + labs(x="Equality change", y="GDP change", title="Welfare impact") + facet_wrap(Region ~ ., scales = "free") + labs(size="Year", shape="Scenario", color="Model", fill="Scenario") + ggalt::geom_encircle(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, fill=Scenario.y, s_shape = 0.7, expand = 0.05), alpha = 0.22)
-saveplot("Change in GDP and inequality across scenarios 650")
-ggplot(data_welfare_effect %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "1150_redist", "1150_impact_redist"))) + geom_point(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, color=Model, size=as.character(Year), shape=Scenario.y)) + scale_size_manual(values = c("2030"=3, "2050"=2, "2100"=1)) + 
-  scale_x_continuous(labels=scales::percent, limits = xscale*c(-swfrange, +swfrange)) + scale_y_continuous(labels=scales::percent, limits = c(-swfrange, +swfrange)) +
-  geom_vline(xintercept = 0) + geom_hline(yintercept = 0) + theme_minimal() + labs(x="Equality change", y="GDP change", title="Welfare impact") + facet_wrap(Region ~ ., scales = "free") + labs(size="Year", shape="Scenario", color="Model", fill="Scenario") + ggalt::geom_encircle(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, fill=Scenario.y, s_shape = 0.7, expand = 0.05), alpha = 0.22)
-saveplot("Change in GDP and inequality across scenarios 1150")
+swfrange = 0.10
+#ggplot(data_welfare_effect %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("650", "650_redist", "650_impact_redist"))) + geom_point(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, color=Model, size=as.character(Year), shape=Scenario.y)) + scale_size_manual(values = c("2030"=3, "2050"=2, "2100"=1)) + 
+#  scale_x_continuous(labels=scales::percent, limits = xscale*c(-swfrange, +swfrange)) + scale_y_continuous(labels=scales::percent, limits = c(-swfrange, +swfrange)) +
+#  geom_vline(xintercept = 0) + geom_hline(yintercept = 0) + theme_minimal() + labs(x="Equality change", y="GDP change", title="Welfare impact") + facet_wrap(Region ~ ., scales = "free") + labs(size="Year", shape="Scenario", color="Model", fill="Scenario") + ggalt::geom_encircle(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, fill=Scenario.y, s_shape = 0.7, expand = 0.05), alpha = 0.22)
+#saveplot("Change in GDP and inequality across scenarios 650")
+#ggplot(data_welfare_effect %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "1150_redist", "1150_impact_redist"))) + geom_point(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, color=Model, size=as.character(Year), shape=Scenario.y)) + scale_size_manual(values = c("2030"=3, "2050"=2, "2100"=1)) + 
+#  scale_x_continuous(labels=scales::percent, limits = xscale*c(-swfrange, +swfrange)) + scale_y_continuous(labels=scales::percent, limits = c(-swfrange, +swfrange)) +
+#  geom_vline(xintercept = 0) + geom_hline(yintercept = 0) + theme_minimal() + labs(x="Equality change", y="GDP change", title="Welfare impact") + facet_wrap(Region ~ ., scales = "free") + labs(size="Year", shape="Scenario", color="Model", fill="Scenario") + #ggalt::geom_encircle(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, fill=Scenario.y, s_shape = 0.7, expand = 0.05), alpha = 0.22)
+#saveplot("Change in GDP and inequality across scenarios 1150")
 
 #for better readability, model as shape, scenario as color
-ggplot(data_welfare_effect %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("650", "650_redist", "650_impact_redist"))) + geom_point(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, color=Scenario.y, size=as.character(Year), shape=Models)) + scale_size_manual(values = c("2030"=3, "2050"=2, "2100"=1)) + 
+ggplot(data_welfare_effect %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("650", "650_redist", "650_impact_redist")) %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy"))) + geom_point(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, color=scenarioclass, size=as.character(Year), shape=Models)) + scale_size_manual(values = c("2030"=3, "2050"=2, "2100"=1)) + 
   scale_x_continuous(labels=scales::percent, limits = xscale*c(-swfrange, +swfrange)) + scale_y_continuous(labels=scales::percent, limits = c(-swfrange, +swfrange)) +
-  geom_vline(xintercept = 0) + geom_hline(yintercept = 0) + theme_minimal() + labs(x="Equality change", y="GDP change", title="Welfare impact") + facet_wrap(Region ~ ., scales = "free", nrow=5) + labs(size="Year", shape="Model", color="Scenario", fill="Scenario") + ggalt::geom_encircle(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, fill=Scenario.y, s_shape = 0.7, expand = 0.05), alpha = 0.22) + scale_shape_identity()
+  geom_vline(xintercept = 0) + geom_hline(yintercept = 0) + theme_minimal() + labs(x="Equality change", y="GDP change", title="Welfare impact") + facet_wrap(Region ~ ., scales = "free", nrow=5) + labs(size="Year", shape="Model", color="Scenario", fill="Scenario") + ggalt::geom_encircle(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, fill=scenarioclass, s_shape = 0.7, expand = 0.05), alpha = 0.22) + scale_shape_identity() + scale_fill_manual(values = c("Climate Policy" = "red", "EPC redistribution"="blue", "EPC with avoided Impacts"="darkgreen"))
 saveplot("Change in GDP and inequality across scenarios 650", width = 8, height = 12)
-ggplot(data_welfare_effect %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "1150_redist", "1150_impact_redist"))) + geom_point(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, color=Scenario.y, size=as.character(Year), shape=Models)) + scale_size_manual(values = c("2030"=3, "2050"=2, "2100"=1)) + 
+
+ggplot(data_welfare_effect %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "1150_redist", "1150_impact_redist")) %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy"))) + geom_point(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, color=scenarioclass, size=as.character(Year), shape=Models)) + scale_size_manual(values = c("2030"=3, "2050"=2, "2100"=1)) + 
   scale_x_continuous(labels=scales::percent, limits = xscale*c(-swfrange, +swfrange)) + scale_y_continuous(labels=scales::percent, limits = c(-swfrange, +swfrange)) +
-  geom_vline(xintercept = 0) + geom_hline(yintercept = 0) + theme_minimal() + labs(x="Equality change", y="GDP change", title="Welfare impact") + facet_wrap(Region ~ ., scales = "free", nrow = 5) + labs(size="Year", shape="Model", color="Scenario", fill="Scenario") + ggalt::geom_encircle(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, fill=Scenario.y, s_shape = 0.7, expand = 0.05), alpha = 0.22) + scale_shape_identity()
+  geom_vline(xintercept = 0) + geom_hline(yintercept = 0) + theme_minimal() + labs(x="Equality change", y="GDP change", title="Welfare impact") + facet_wrap(Region ~ ., scales = "free", nrow = 5) + labs(size="Year", shape="Model", color="Scenario", fill="Scenario") + ggalt::geom_encircle(aes(x = relchange_Equality_index, y = `relchange_GDP|PPP`, fill=scenarioclass, s_shape = 0.7, expand = 0.05), alpha = 0.22) + scale_shape_identity() + scale_fill_manual(values = c("Climate Policy" = "red", "EPC redistribution"="blue", "EPC with avoided Impacts"="darkgreen"))
 saveplot("Change in GDP and inequality across scenarios 1150", width = 8, height = 12)
 
 
 
-
-#Incidence curve for Deliverable
-iamc_incidence_curve(scen0 = "REF", scen1 = "650", year = 2050, aggregate_use = "Consumption", Regions = countries_reported)
 
 
 
 
 #Inequality change across scenarios, model ranges from left to right
 data_welfare_effect_reordered <- data_welfare_effect %>% mutate(Scenario.y=as.factor(Scenario.y), Scenario.y=fct_relevel(Scenario.y, c("REF", "1150", "650", "1150_redist", "650_redist", "REF_impact", "1150_impact", "1150_impact_redist", "650_impact", "650_impact_redist"))) 
-data_welfare_effect_reordered <- data_welfare_effect_reordered %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPS and with Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy"))
-ggplot(data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "650", "1150_redist", "650_redist", "1150_impact_redist", "650_impact_redist")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5)) + geom_point(aes(x = Scenario.y, y = 100*(value.x_Equality_index-value.y_Equality_index), color=Model)) + facet_grid(Region ~ Year)  + theme_minimal() + geom_hline(yintercept = 0) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(y="Change in Gini [points]", x="Scenario", title="Impact on the Gini index")  + geom_rect(aes(xmin=Scenario.y.start, xmax=Scenario.y.end, ymin=-5, ymax=5, fill=scenarioclass), alpha=0.05)
-saveplot("Gini impact over scenarios")
+data_welfare_effect_reordered <- data_welfare_effect_reordered %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy"))
+#ggplot(data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "650", "1150_redist", "650_redist", "1150_impact_redist", "650_impact_redist")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5)) + geom_point(aes(x = Scenario.y, y = 100*(value.x_Equality_index-value.y_Equality_index), color=Model)) + facet_grid(Region ~ Year)  + theme_minimal() + geom_hline(yintercept = 0) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(y="Change in Gini [points]", x="Scenario", title="Impact on the Gini index")  + geom_rect(aes(xmin=Scenario.y.start, xmax=Scenario.y.end, ymin=-5, ymax=5, fill=scenarioclass), alpha=0.05)
+#saveplot("Gini impact over scenarios")
+
+
 #version with boxplot for presentation
-ggplot(data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "650", "1150_redist", "650_redist", "1150_impact_redist", "650_impact_redist")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5), cbudget=gsub("[a-z_]","", Scenario.y)) + geom_point(aes(x = Scenario.y, y = 100*(value.x_Equality_index-value.y_Equality_index), color=Model)) + facet_grid(Region ~ Year, scales = "free_y")  + theme_minimal() + geom_hline(yintercept = 0) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(y="Change in Gini [points]", x="Scenario", title="Impact on the Gini index")  + geom_rect(aes(xmin=Scenario.y.start, xmax=Scenario.y.end, ymin=-Inf, ymax=+Inf, fill=scenarioclass), alpha=0.05) + geom_boxplot(aes(x = Scenario.y, y = 100*(value.x_Equality_index-value.y_Equality_index)), alpha=0.3, color="grey50") + labs(fill="Scenario", x="Carbon budget") + scale_x_discrete(labels=rep(c("1150", "650"), 3)) 
-saveplot("Gini impact over scenarios v2")
+#ggplot(data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "650", "1150_redist", "650_redist", "1150_impact_redist", "650_impact_redist")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5), cbudget=gsub("[a-z_]","", Scenario.y)) + geom_point(aes(x = Scenario.y, y = 100*(value.x_Equality_index-value.y_Equality_index), color=Model)) + facet_grid(Region ~ Year, scales = "free_y")  + theme_minimal() + geom_hline(yintercept = 0) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(y="Change in Gini [points]", x="Scenario", title="Impact on the Gini index")  + geom_rect(aes(xmin=Scenario.y.start, xmax=Scenario.y.end, ymin=-Inf, ymax=+Inf, fill=scenarioclass), alpha=0.05) + geom_boxplot(aes(x = Scenario.y, y = 100*(value.x_Equality_index-value.y_Equality_index)), alpha=0.3, color="grey50") + labs(fill="Scenario", x="Carbon budget") + scale_x_discrete(labels=rep(c("1150", "650"), 3)) 
+#saveplot("Gini impact over scenarios v2")
 
 
 
 #10 countries, only 650
-ggplot(data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "650", "1150_redist", "650_redist", "1150_impact_redist", "650_impact_redist")) %>% filter(str_detect(Scenario.y, "650")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5), cbudget=gsub("[a-z_]","", Scenario.y)) + geom_point(aes(x = Scenario.y, y = 100*(value.x_Equality_index-value.y_Equality_index), color=Model)) + facet_grid(Region ~ Year, scales = "free_y")  + theme_minimal() + geom_hline(yintercept = 0) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(y="Change in Gini [points]", x="Scenario", title="Impact on the Gini index")  + geom_rect(aes(xmin=Scenario.y.start, xmax=Scenario.y.end, ymin=-Inf, ymax=+Inf, fill=scenarioclass), alpha=0.05) + geom_boxplot(aes(x = Scenario.y, y = 100*(value.x_Equality_index-value.y_Equality_index)), alpha=0.3, color="grey50") + labs(fill="Scenario", x="") + scale_x_discrete(labels=rep(c("Climate Policy", "EPC redistribution", "EPC and Impacts"),3)) 
+ggplot(data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "650", "1150_redist", "650_redist", "1150_impact_redist", "650_impact_redist")) %>% filter(str_detect(Scenario.y, "650")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5), cbudget=gsub("[a-z_]","", Scenario.y)) + geom_point(aes(x = Scenario.y, y = 100*(value.x_Equality_index-value.y_Equality_index), color=Model)) + facet_grid(Region ~ Year, scales = "free_y")  + theme_minimal() + geom_hline(yintercept = 0) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + labs(y="Change in Gini [points]", x="Scenario", title="Impact on the Gini index")  + geom_rect(aes(xmin=Scenario.y.start, xmax=Scenario.y.end, ymin=-Inf, ymax=+Inf, fill=scenarioclass), alpha=0.05) + geom_boxplot(aes(x = Scenario.y, y = 100*(value.x_Equality_index-value.y_Equality_index)), alpha=0.3, color="grey50") + labs(fill="Scenario", x="") + scale_x_discrete(labels=rep(c("Climate Policy", " + EPC", "+ Residual Impacts"),3)) + scale_fill_manual(values = c("Climate Policy" = "red", "EPC redistribution"="blue", "EPC with avoided Impacts"="darkgreen")) # + ylim(-10,+10)
 saveplot("Gini impact over scenarios all countries", width = 8, height = 12)
 
 
@@ -358,18 +360,25 @@ saveplot("Gini impact over scenarios all countries", width = 8, height = 12)
 
 
 
-#Emissions, carbon price, and transfers
+#Emissions, carbon price, and transfers for EPC anaysis
 transfer_data <- iiasadb_data %>% filter(Variable %in% c("Price|Carbon", "Emissions|CO2", "Gini_recomputed", "Population")) %>% pivot_wider(id_cols = c(Scenario, Model, Region, Year),names_from = Variable)
 ggplot(transfer_data %>% filter(Scenario=="650_redist" & Year <= 2050)) + geom_line(aes(Year, `Emissions|CO2`*`Price|Carbon` / Population, color=Model)) + ylab("Carbon Revenues per capita [USD/cap]") + facet_wrap(Region ~ ., scales = "free_y", nrow = 2) + theme(legend.position = "bottom")
 saveplot("Carbon Revenues")
 
-#some correlations
-#first combining all countries scenarios and models
+#Correlation of Transper per capita and Gini
+#global relationship
 ggplot(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050)) + geom_point(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index), color=Model, alpha=Year, shape=Region)) + facet_wrap(. ~ ., scales = "free", nrow = 2) + theme(legend.position = "bottom") + geom_smooth(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index)), method="lm") + labs(x="Carbon Revenues per capita [USD/cap]", y = "Change in the Gini with EPC in the 650 senario [points]") + geom_hline(yintercept = 0)
-
+#by country
 ggplot(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050)) + geom_point(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index), color=Model, alpha=Year)) + facet_wrap(Region ~ ., scales = "free", nrow = 2) + theme(legend.position = "bottom") + geom_smooth(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index)), method="lm") + labs(x="Carbon Revenues per capita [USD/cap]", y = "Change in the Gini with EPC in the 650 senario [points]") + geom_hline(yintercept = 0)
+
+#now avoid negative transfers (remove obs)
+ggplot(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050) %>% filter(`Emissions|CO2`>=0)) + geom_point(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index), color=Model, alpha=Year)) + facet_wrap(Region ~ ., scales = "free", nrow = 2) + theme(legend.position = "bottom") + geom_smooth(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index)), method="lm") + labs(x="Carbon Revenues per capita [USD/cap]", y = "Change in the Gini with EPC in the 650 senario [points]") + geom_hline(yintercept = 0)
 saveplot("Carbon Revenes and Gini impact")
-reg_carbrev <- lm(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population), formula = "gini_change ~ carbon_revenue_capita + Model + Region -1")
+
+#and fix start at zero
+ggplot(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050) %>% filter(`Emissions|CO2`>=0)) + geom_point(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index), color=Model, alpha=Year)) + facet_wrap(Region ~ ., scales = "free", nrow = 2) + theme(legend.position = "bottom") + geom_smooth(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index)), method="lm", formula = y ~ 0 + x) + labs(x="Carbon Revenues per capita [USD/cap]", y = "Change in the Gini with EPC in the 650 senario [points]") + geom_hline(yintercept = 0)
+
+reg_carbrev <- lm(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population) %>% filter(`Emissions|CO2`>=0), formula = "gini_change ~ carbon_revenue_capita + Region + Model - 1")
 summary(reg_carbrev)
 stargazer::stargazer(reg_carbrev, type = "html", single.row = T, out = paste0(graphdir, "/reg.htm"))
 stargazer::stargazer(reg_carbrev, type = "latex", single.row = T, out = paste0(graphdir, "/reg.tex"), dep.var.labels = "Gini impact  [points]")

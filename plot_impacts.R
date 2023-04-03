@@ -281,26 +281,31 @@ mip_income_reg <- rbind(mip_final_2100, mip_final_50)
 if(spec == "BHM") {
   
   gini_temp_reg <- lm(delta_gini_bhm*100 ~ delta_temp +
-                        factor(Model), data = mip_income_reg)
+                        factor(Model) -1, data = mip_income_reg)
 }
 
 if(spec == "Adaptation") {
   gini_temp_reg <- lm(delta_gini_ada*100 ~ delta_temp +
-                        factor(Model), data = mip_income_reg)
+                        Model -1, data = mip_income_reg)
 }
 
 stargazer(gini_temp_reg,
           type = "latex",
-          dep.var.caption = "Climate impacts on Gini index",
-          covariate.labels = c("Change in regional temperature",
-                               "E3ME", "GEM-E3", "Imaclim", "NICE", "REMIND",
-                               "RICE50+", "WITCH"),
-          dep.var.labels.include=FALSE,
+          # dep.var.caption = "Climate impacts on Gini index",
+ #         covariate.labels = c("Change in regional temperature",
+#                               "E3ME", "GEM-E3", "Imaclim", "NICE", "REMIND",
+#                               "RICE50+", "WITCH"),
+          dep.var.labels = "Gini impact  [points]",
           model.names = FALSE,
           header=F,
           float=T,
+          single.row = T,
           out = paste0("graphs/", spec, "_gini_temp_reg",".tex")
 )
+
+graphdir = "graphs"
+hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
+
 
 }
 

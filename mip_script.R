@@ -92,6 +92,44 @@ mip_income_d <- mip_income_d %>%
   ) %>% 
   filter(Year >= 2020)
 
+#### Compute income elasticity of policy impacts ####
+
+policy_df <- mip_income_d %>% 
+  filter(Scenario == "REF" | Scenario == "650") %>% 
+  select(Scenario, Model, Region, Year, Decile, Decile_income) %>% 
+  mutate(Decile_income = log(Decile_income)) %>% 
+  pivot_wider(
+    names_from = Scenario,
+    values_from = Decile_income
+  ) %>% 
+  mutate(
+    delta_income_policy = REF - `650`
+  ) %>% 
+  group_by(Model, Region, Year) %>% 
+  mutate(
+    country_y_ref = sum(REF, na.rm = T),
+    REFrel = REF/country_y_ref
+  )
+
+# Regressing difference in decile-level income due to policy on income levels under REF
+policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model - 1,
+                        data = policy_df)
+
+stargazer(policy_impact_reg,
+          type = "latex",
+          dep.var.labels = "Change in decile income, from policy",
+          model.names = FALSE,
+          header=F,
+          float=T,
+          single.row = T,
+          out = "graphs/policy_impact_elast.tex")
+
+graphdir = "graphs"
+hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
+hutils::replace_pattern_in("REFrel", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
+
+
+
 #### Compute damages: region-level ####
 
 # Load coefficients for decile impact functions

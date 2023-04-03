@@ -315,11 +315,10 @@ mip_income_d <- mip_income_d %>%
     gini_impact_ada = reldist::gini(Dec_with_impact_ada),
     delta_gini_ada = gini_impact_ada - gini_counter
   )
+#### Create dataframe with post-processed impacts, for all models and scenarios ####
 
-### Make all the plots for impacts
-source("plot_impacts.R")
+### 2 Variables to add to mip_data, per spec = 4 total 
 
-#### 2 Variables to add to mip_data, per spec = 4 total ####
 ### (Dec_with_impact_*, then compute GDP|PPP_with_impact_* as sum of Dec_with_impact)
 
 # BHM Spec
@@ -415,8 +414,8 @@ df_new_scen_names <- df_old_scen_names %>%
 
 df_old_scen_names <- df_old_scen_names %>% 
   mutate(
-   value = case_when(str_detect(Variable, "impact") ~ NA_real_,
-              TRUE ~ value)
+    value = case_when(str_detect(Variable, "impact") ~ NA_real_,
+                      TRUE ~ value)
   )
 
 df_no_impacts_scen <- mip_data %>% 
@@ -428,4 +427,8 @@ mip_data <- rbind(df_no_impacts_scen, df_old_scen_names, df_new_scen_names)
 rm(list = ls(pattern = "^df_"))
 
 save(mip_data, file = "prova_mip.Rdata")
+
+
+#### Make all the plots for impacts ####
+source("plot_impacts.R")
 

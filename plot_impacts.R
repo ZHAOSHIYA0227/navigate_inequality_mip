@@ -1,3 +1,106 @@
+#### Prepare data for plots ####
+
+## custom function
+`%nin%` = Negate(`%in%`)
+
+# Save temperature data
+mip_50_final <- mip_income_d %>% 
+  filter(Model == "E3ME" | Model == "AIM/PHI") %>% 
+  filter(Year == 2050) %>% 
+  mutate(
+    temp_final = temp_regional,
+    delta_temp = temp_final - temp_start
+  ) %>% 
+  select(Scenario, Model, Region, Year, delta_temp) %>% 
+  distinct()
+
+mip_100_final <- mip_income_d %>% 
+  filter(Model != "E3ME" & Model != "AIM/PHI") %>% 
+  filter(Year == 2100) %>% 
+  mutate(
+    temp_final = temp_regional,
+    delta_temp = temp_final - temp_start
+  ) %>% 
+  select(Scenario, Model, Region, Year, delta_temp) %>% 
+  distinct()
+
+# Filter out the models that already have their own impacts
+models_with_impacts <- c("NICE", "REMIND", "RICE50+")
+
+## Impacts under REF
+prova_ref <- mip_income_d  %>%
+  filter(Model %in% models_with_impacts) %>% 
+  filter(str_detect(Scenario, "REF")) %>% 
+  select(
+    Scenario, Model, Region, Decile, Year, Decile_income
+  ) %>% 
+  pivot_wider(
+    names_from = Scenario,
+    values_from = Decile_income
+  ) %>% 
+  mutate(
+    damages_dist_bhm = REF - REF_impact,
+    damages_dist_ada = damages_dist_bhm, # these impacts don't depend on Spec.
+    dam_dist_frac_bhm = (REF - REF_impact)/REF,
+    dam_dist_frac_ada = dam_dist_frac_bhm
+  ) %>% 
+  group_by(Model, Region, Year) %>% 
+  mutate(
+    Reg_impact = sum(REF, na.rm = T) - sum(REF_impact, na.rm = T),
+    Reg_damages_bhm_frac = Reg_impact/sum(REF, na.rm = T),
+    Reg_damages_ada_frac = Reg_damages_bhm_frac, # same as above
+    gini_counter = reldist::gini(REF),
+    gini_impact_bhm = reldist::gini(REF_impact),
+    delta_gini_bhm = gini_impact_bhm - gini_counter,
+    delta_gini_ada = delta_gini_bhm # same as above
+  ) %>% 
+  mutate(
+    Scenario = "REF"
+  ) %>% 
+  select(Scenario, Model, Region, Decile, Year, everything(),
+         -REF, -REF_impact, -Reg_impact)
+
+## Impacts under 650
+prova_650 <- mip_income_d  %>%
+  filter(Model %in% models_with_impacts) %>% 
+  filter(Scenario == "650" | Scenario == "650_impact") %>% 
+  select(
+    Scenario, Model, Region, Decile, Year, Decile_income
+  ) %>% 
+  pivot_wider(
+    names_from = Scenario,
+    values_from = Decile_income
+  ) %>% 
+  mutate(
+    damages_dist_bhm = `650` - `650_impact`,
+    damages_dist_ada = damages_dist_bhm, # these impacts don't depend on Spec.
+    dam_dist_frac_bhm = (`650` - `650_impact`)/`650`,
+    dam_dist_frac_ada = dam_dist_frac_bhm
+  ) %>% 
+  group_by(Model, Region, Year) %>% 
+  mutate(
+    Reg_impact = sum(`650`, na.rm = T) - sum(`650_impact`, na.rm = T),
+    Reg_damages_bhm_frac = Reg_impact/sum(`650`, na.rm = T),
+    Reg_damages_ada_frac = Reg_damages_bhm_frac, # same as above
+    gini_counter = reldist::gini(`650`),
+    gini_impact_bhm = reldist::gini(`650_impact`),
+    delta_gini_bhm = gini_impact_bhm - gini_counter,
+    delta_gini_ada = delta_gini_bhm # same as above
+  )  %>% 
+  mutate(
+    Scenario = "650"
+  )  %>% 
+  select(Scenario, Model, Region, Decile, Year, everything(),
+         -`650`, -`650_impact`, -Reg_impact)
+
+# Re-append models with impacts from models to those with post-processed impacts
+mip_income_d <- mip_income_d %>% 
+  filter(Model %nin% models_with_impacts) %>% 
+  select(names(prova_ref)) %>% 
+  rbind(., prova_ref, prova_650)
+
+rm(list = ls(pattern = "^prova_"))
+
 # set colors for deciles in plots
 colors_deciles <- c("purple", rev(colorspace::diverging_hcl(9, "Cyan-Magenta")))
 
@@ -32,7 +135,6 @@ reg_dam_plot = function(spec, dir) {
                           na.omit() %>% 
                           filter(Scenario == "REF" | Scenario == "650") %>% 
                             select(Scenario:Year, Reg_damages_bhm_frac) %>% 
-                            select(-Scenario_type) %>% 
                             distinct() %>% 
                             mutate(
                               Reg_damages_bhm_frac = Reg_damages_bhm_frac*100
@@ -79,14 +181,12 @@ reg_dam_plot = function(spec, dir) {
             legend.position = "bottom")
     
     # avoided country-level damages by going from REF to 650
-    title_2 <- expression(atop(bold("Avoided damages from REF to 650, across countries"),
-                               scriptstyle("Without adaptation")))
+    title_2 <- expression(atop(bold("Avoided damages from REF to 650, across countries")))
     
     p_reg_avoided_dam <- ggplot(mip_income_d %>% 
                                   na.omit() %>% 
                                   filter(Scenario == "REF" | Scenario == "650") %>% 
                                   select(Scenario:Year, Reg_damages_ada_frac) %>% 
-                                  select(-Scenario_type) %>% 
                                   distinct() %>% 
                                   mutate(
                                     Reg_damages_ada_frac = Reg_damages_ada_frac*100
@@ -157,7 +257,6 @@ gini_plot = function(spec, dir) {
                                   na.omit() %>% 
                                   filter(Scenario == "REF" | Scenario == "650") %>% 
                                   select(Scenario:Year, delta_gini_bhm) %>% 
-                                  select(-Scenario_type) %>% 
                                   distinct() %>% 
                                   mutate(
                                     delta_gini_bhm = delta_gini_bhm*100
@@ -209,7 +308,6 @@ gini_plot = function(spec, dir) {
                                   na.omit() %>% 
                                   filter(Scenario == "REF" | Scenario == "650") %>% 
                                   select(Scenario:Year, delta_gini_ada) %>% 
-                                  select(-Scenario_type) %>% 
                                   distinct() %>% 
                                   mutate(
                                     delta_gini_ada = delta_gini_ada*100
@@ -254,47 +352,30 @@ gini_temp_reg = function(spec, dir) {
 
   require(stargazer)
   
-## First, compute final temperature
-
-## stopping in 2050: E3ME, AIM/PHi
-mip_final_50 <- mip_income_d %>% 
-  filter(Model == "E3ME" | Model == "AIM/PHI") %>% 
-  filter(Year == 2050) %>% 
-  mutate(
-    temp_final = temp_regional,
-    delta_temp = temp_final - temp_start
-  ) %>% 
-  select(Scenario, Model, Region, Decile, Year, starts_with("delta"))
-
-mip_final_2100 <- mip_income_d %>% 
-  filter(Model != "E3ME" & Model != "AIM/PHI") %>% 
-  filter(Year == 2100) %>% 
-  mutate(
-    temp_final = temp_regional,
-    delta_temp = temp_final - temp_start
-  ) %>% 
-  select(Scenario, Model, Region, Decile, Year, starts_with("delta"))
-
-mip_income_reg <- rbind(mip_final_2100, mip_final_50)
-
-
+  mip_final <- rbind(mip_50_final, mip_100_final)
+  
+  mip_income_reg <- mip_income_d %>% 
+    select(Scenario, Model, Region, Year, delta_gini_bhm, delta_gini_ada) %>% 
+    distinct() %>% 
+    full_join(mip_final,
+              by = c("Scenario", "Model", "Region", "Year")) %>% 
+    rename(deltatemp = delta_temp)
+    
+  
 if(spec == "BHM") {
   
-  gini_temp_reg <- lm(delta_gini_bhm*100 ~ delta_temp +
-                        factor(Model) -1, data = mip_income_reg)
+  gini_temp_reg <- lm(delta_gini_bhm*100 ~ deltatemp +
+                        Model -1, data = mip_income_reg)
 }
 
 if(spec == "Adaptation") {
-  gini_temp_reg <- lm(delta_gini_ada*100 ~ delta_temp +
+  
+  gini_temp_reg <- lm(delta_gini_ada*100 ~ deltatemp +
                         Model -1, data = mip_income_reg)
 }
 
 stargazer(gini_temp_reg,
           type = "latex",
-          # dep.var.caption = "Climate impacts on Gini index",
- #         covariate.labels = c("Change in regional temperature",
-#                               "E3ME", "GEM-E3", "Imaclim", "NICE", "REMIND",
-#                               "RICE50+", "WITCH"),
           dep.var.labels = "Gini impact  [points]",
           model.names = FALSE,
           header=F,
@@ -305,6 +386,7 @@ stargazer(gini_temp_reg,
 
 graphdir = "graphs"
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
+hutils::replace_pattern_in("deltatemp","Change in temperature", file_pattern="*.tex", basedir = graphdir)
 
 
 }
@@ -357,7 +439,6 @@ decile_plot = function (spec, dir) {
     na.omit() %>% 
     filter(Scenario == "REF" | Scenario == "650") %>% 
     select(Scenario:Year, Decile, dam_dist_frac_bhm) %>% 
-    select(-Scenario_type) %>% 
     distinct() %>% 
     mutate(
       dam_dist_frac_bhm = dam_dist_frac_bhm*100,
@@ -418,10 +499,9 @@ decile_plot = function (spec, dir) {
                                    na.omit() %>% 
                                    filter(Scenario == "REF" | Scenario == "650") %>% 
                                    select(Scenario:Year, Decile, dam_dist_frac_ada) %>% 
-                                   select(-Scenario_type) %>% 
                                    distinct() %>% 
                                    mutate(
-                                     dam_dist_frac_bhm = dam_dist_frac_ada*100,
+                                     dam_dist_frac_ada = dam_dist_frac_ada*100,
                                      Decile = factor(Decile,
                                                      levels = c("D1", "D2", "D3", "D4", "D5",
                                                                 "D6", "D7", "D8", "D9", "D10"))
@@ -467,6 +547,8 @@ decile_plot_sel_years = function(spec, dir) {
   require(ggpattern)
   
   if(spec == "BHM") {
+    
+    # Decile-level impacts in 2100, both Scenarios
     p_dec_sel_100 <-  ggplot(mip_income_d %>% 
                                filter(Scenario == "REF" | Scenario == "650"
                                ) %>% 
@@ -479,9 +561,43 @@ decile_plot_sel_years = function(spec, dir) {
                            group = Decile, fill = Decile),
                        stat = "identity", position = position_dodge(0.9), width = 2) +
       labs(x = "Model", y = "Damages, %",
-           title = "Damages at decile level in 2100") + 
+           title = "Damages at decile level in 2100",
+           subtitle = "Without adaptation") + 
       scale_fill_manual(name = "Income deciles", values = colors_deciles) +
-      scale_pattern_manual(name = "Scenario", values = c("stripe", "plasma")) +
+      scale_pattern_manual(name = "Scenario", values = c("plasma", "stripe")) +
+      facet_wrap(~ Region, ncol = 5) +
+      scale_x_discrete(guide = guide_axis(n.dodge=2)) +
+      theme_bw() +
+      theme(panel.spacing.x = unit(6, "mm"),
+            legend.position="bottom",
+            plot.title = element_text(hjust = 0.5))
+    
+    
+    # Avoided decile-level impacts in 2100, from 650 relative to REF
+    p_dec_avoided_100 <- ggplot(mip_income_d %>% 
+             na.omit() %>% 
+             filter(Scenario == "REF" | Scenario == "650") %>% 
+               filter(Year == 2100) %>%
+             select(Scenario:Year, Decile, dam_dist_frac_bhm) %>% 
+             distinct() %>% 
+             mutate(
+               dam_dist_frac_bhm = dam_dist_frac_bhm*100,
+               Decile = factor(Decile,
+                               levels = c("D1", "D2", "D3", "D4", "D5",
+                                          "D6", "D7", "D8", "D9", "D10"))
+             ) %>% 
+             pivot_wider(
+               names_from = Scenario,
+               values_from = dam_dist_frac_bhm
+             ) %>% 
+             mutate(avoided_reg_dam_bhm = REF - `650`),
+           aes(x = Model, y = avoided_reg_dam_bhm)) +
+      geom_bar(aes(group = Decile, fill = Decile),
+                       stat = "identity", position = position_dodge(0.9), width = 2) +
+      labs(x = "Model", y = "Avoided damages, %",
+           title = "Avoided damages at decile level in 2100",
+           subtitle = "Without adaptation") + 
+      scale_fill_manual(name = "Income deciles", values = colors_deciles) +
       facet_wrap(~ Region, ncol = 5) +
       scale_x_discrete(guide = guide_axis(n.dodge=2)) +
       theme_bw() +
@@ -507,7 +623,7 @@ decile_plot_sel_years = function(spec, dir) {
     labs(x = "Model", y = "Damages, %",
          title = "Damages at decile level in 2100") + 
     scale_fill_manual(name = "Income deciles", values = colors_deciles) +
-    scale_pattern_manual(name = "Scenario", values = c("stripe", "plasma")) +
+    scale_pattern_manual(name = "Scenario", values = c("plasma", "stripe")) +
     facet_wrap(~ Region, ncol = 5) +
     scale_x_discrete(guide = guide_axis(n.dodge=2)) +
    theme_bw() +
@@ -515,11 +631,49 @@ decile_plot_sel_years = function(spec, dir) {
           legend.position="bottom",
           plot.title = element_text(hjust = 0.5))
  
+ # Avoided decile-level impacts in 2100, from 650 relative to REF
+ p_dec_avoided_100 <- ggplot(mip_income_d %>% 
+                               na.omit() %>% 
+                               filter(Scenario == "REF" | Scenario == "650") %>% 
+                               filter(Year == 2100) %>%
+                               select(Scenario:Year, Decile, dam_dist_frac_ada) %>% 
+                               distinct() %>% 
+                               mutate(
+                                 dam_dist_frac_ada = dam_dist_frac_ada*100,
+                                 Decile = factor(Decile,
+                                                 levels = c("D1", "D2", "D3", "D4", "D5",
+                                                            "D6", "D7", "D8", "D9", "D10"))
+                               ) %>% 
+                               pivot_wider(
+                                 names_from = Scenario,
+                                 values_from = dam_dist_frac_ada
+                               ) %>% 
+                               mutate(avoided_reg_dam_ada = REF - `650`),
+                             aes(x = Model, y = avoided_reg_dam_ada)) +
+   geom_bar(aes(group = Decile, fill = Decile),
+            stat = "identity", position = position_dodge(0.9), width = 2) +
+   labs(x = "Model", y = "Avoided damages, %",
+        title = "Avoided damages at decile level in 2100") + 
+   scale_fill_manual(name = "Income deciles", values = colors_deciles) +
+   facet_wrap(~ Region, ncol = 5) +
+   scale_x_discrete(guide = guide_axis(n.dodge=2)) +
+   theme_bw() +
+   theme(panel.spacing.x = unit(6, "mm"),
+         legend.position="bottom",
+         plot.title = element_text(hjust = 0.5))
+ 
+ 
   }
   
   ggsave(filename = paste0(spec, "_decile_damages_2100.png"),
+         plot = p_dec_sel_100,
          width = 15, height = 7, path = dir)
   
+  ggsave(filename = paste0(spec, "_decile_avoided_damages_2100.png"),
+         plot = p_dec_avoided_100,
+         width = 15, height = 7, path = dir)
+  
+  # return(list(p_dec_sel_100, p_dec_avoided_100))
   
 }
 

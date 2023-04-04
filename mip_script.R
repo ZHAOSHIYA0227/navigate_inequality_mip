@@ -5,16 +5,26 @@ library(here)
 library(stargazer)
 
 #### Load deciles data ####
+
+#check if plotgdx_iiasadb.R has been run before)
+if(!exists("measure_inequality")){
+measure_inequality <- "Income"
+graphdir <- paste0("graphs_", measure_inequality)
 load(here("inequality_mip_full.Rdata"))
+}
+
+
+
 
 mip_data <- iiasadb_data
 
-rm(iiasadb_data)
-
 # Decile incomes data
-mip_income_d <- subset(mip_data, grepl('^Income', mip_data$Variable)) %>% 
+mip_income_d <- subset(mip_data, grepl(str_glue("{measure_inequality}\\|D"), mip_data$Variable)) %>% 
   pivot_wider(names_from = "Variable",
               values_from = "value")
+
+#for simplicity rename to always keep Income as name
+names(mip_income_d) <- gsub(measure_inequality, "Income", names(mip_income_d))
 
 ## "Income| deciles" variables are actually shares
 ## merging with total GDP
@@ -118,9 +128,8 @@ stargazer(policy_impact_reg,
           header=F,
           float=T,
           single.row = T,
-          out = "graphs/policy_impact_elast.tex")
+          out = paste0(graphdir, "/policy_impact_elast.tex"))
 
-graphdir = "graphs"
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("REFrel", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
 reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata = policy_df)) %>% filter(!is.na(...10))

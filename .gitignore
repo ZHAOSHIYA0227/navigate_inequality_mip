@@ -37,5 +37,7 @@ vignettes/*.pdf
 
 
 graphs/*
+graphs_Income/*
+graphs_Consumption/*
 *.RData
 iiasa_credentials.yml

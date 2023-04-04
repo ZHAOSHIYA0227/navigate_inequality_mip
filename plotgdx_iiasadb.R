@@ -1,3 +1,7 @@
+#Consumption or Income?
+measure_inequality <- "Income"
+
+
 require(tidyverse)
 require(reticulate)
 require(data.table)
@@ -21,7 +25,7 @@ df$to_excel("WP4_snapshot.xlsx")
 
 
 
-graphdir <- "graphs"
+graphdir <- paste0("graphs_", measure_inequality)
 #use the function saveplot to save the graphs in the relative folders 
 figure_format <- "png"
 convert_pdftopng <- F #converts all created pdfs to png for better quality (needs pdftopng.exe in your PATH. Download from http://www.xpdfreader.com/download.html)
@@ -73,7 +77,6 @@ iiasadb_data <- rbind(iiasadb_data, upload2iiasa("NAVIGATE_template_inequality_v
 iiasadb_data <- iiasadb_data %>% mutate(value = as.numeric(value)) %>% mutate(Variable=gsub("Expenditure Decile", "Consumption", Variable))
 
 
-#we focus on income!
 #For REMIND and AIM based on a constant savings rate use same deciles as consumption for income
 #ISSUE: E3ME has only income, so take consumption as now also as income!
 iiasadb_data <- rbind(iiasadb_data, iiasadb_data %>% filter(str_detect(Variable, "Consumption\\|") & Model %in% c("REMIND 3.0", "AIM/PHI")) %>% mutate(Variable=gsub("Consumption", "Income", Variable)), iiasadb_data %>% filter(str_detect(Variable, "Income\\|") & Model %in% c("E3ME-FTT")) %>% mutate(Variable=gsub("Income", "Consumption", Variable)))
@@ -122,12 +125,19 @@ iiasadb_data <- iiasadb_data %>%
 ggplot(iiasadb_data %>% group_by(Model, Scenario) %>% summarize(regions=length(unique(Region)), variables=length(unique(Variable))), aes(Model,Scenario, fill = variables*regions)) + geom_tile() + geom_text(aes(label=str_glue("Var:{variables}, N:{regions}"))) + theme_minimal() + scale_fill_gradient2(low = "white", mid = "yellow", high = "darkgreen") + xlab("") + ylab("") + ggtitle(str_glue("Scenario submissions ({nrow(iiasadb_data %>% ungroup() %>% group_by(Model, Scenario) %>% summarize(n=1))} as of {format(Sys.time(), '%d %b %Y')})")) + guides(fill="none")
 saveplot("Scenario matrix")
 
+
+
 save(iiasadb_data, file = "inequality_mip_full.Rdata")
+source("mip_script.R")
+
+
+
+
 
 
 ###########################################################################
 #import impacts postprocessed!
-models_with_impacts <- c("NICE", "REMIND", "RICE50+")
+models_with_impacts <- c("NICE", "ReMIND", "RICE50+")
 load("prova_mip.Rdata")
 iiasadb_impacts_postprocessed <- mip_data %>% filter(!(Model %in% models_with_impacts)) %>% filter(str_detect(Variable, "with_impact_ada")) %>% mutate(Variable=gsub("Dec_with_impact_ada", "Consumption", Variable), Variable=gsub("GDP\\|PPP_with_impact_ada", "GDP|PPP", Variable)) %>% mutate(Scenario = paste0(Scenario, "_impact")) %>% mutate(Scenario=gsub("redist_impact", "impact_redist", Scenario))
 iiasadb_data <- rbind(iiasadb_data, iiasadb_impacts_postprocessed)
@@ -219,7 +229,7 @@ iamc_lineplot(reg=countries_reported, var="Emissions|CO2|Energy and Industrial P
 
 
 #Quantile plot
-iiasadb_data %>% filter(str_detect(Variable, "Consumption\\|D")) %>% filter(Year==2050 & Scenario %in% c("REF")) %>% mutate(dist=as.numeric(gsub("Consumption\\|D", "", Variable)))  %>% filter(!str_detect(Region, "\\|")) %>% ggplot() + geom_line(aes(dist, value, color=Model, linetype=Scenario), size=1) + xlab("Decile") + facet_wrap(Region ~ ., scales = "free_x", nrow = 2) + scale_x_continuous(breaks=seq(1,10)) + theme(legend.position = "bottom") + ylab("Share of total consumption for each decile [%]")
+iiasadb_data %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% filter(Year==2050 & Scenario %in% c("REF")) %>% mutate(dist=as.numeric(gsub(str_glue("{measure_inequality}\\|D"), "", Variable)))  %>% filter(!str_detect(Region, "\\|")) %>% ggplot() + geom_line(aes(dist, value, color=Model, linetype=Scenario), size=1) + xlab("Decile") + facet_wrap(Region ~ ., scales = "free_x", nrow = 2) + scale_x_continuous(breaks=seq(1,10)) + theme(legend.position = "bottom") + ylab("Share of total consumption for each decile [%]")
 saveplot("Decile Plots for 2050", width=8, height = 5)
 
 
@@ -227,7 +237,7 @@ saveplot("Decile Plots for 2050", width=8, height = 5)
 
 
 #Incicende from two scenarios
-iamc_incidence_curve <- function(scen0 = "REF", scen1 = "650", year = 2050, aggregate_use="Consumption", Regions="all"){
+iamc_incidence_curve <- function(scen0 = "REF", scen1 = "650", year = 2050, aggregate_use=measure_inequality, Regions="all"){
   iiasadb_incidence <- iiasadb_data %>% filter(str_detect(Variable, paste0(aggregate_use, "\\|D"))) %>% filter(Year==year) %>% mutate(dist=as.numeric(gsub(paste0(aggregate_use, "\\|D"), "", Variable)))  %>% filter(!str_detect(Region, "\\|")) %>% filter(Scenario %in% c(scen0, scen1)) %>% pivot_wider(id_cols = c(Model, Region, dist, Year), names_from = Scenario) %>% mutate(Incidence_decile=get(scen1)/get(scen0)-1)
   if(Regions[1]!="all") iiasadb_incidence <- iiasadb_incidence %>% filter(Region %in% Regions)
   # quantiles need to be combined with GDP|PPP to get the total imapct of inequality and macro GDP level
@@ -253,7 +263,7 @@ iamc_incidence_curve(scen0 = "REF", scen1 = "REF_impact", year = 2050)
 # Gini index
 iamc_lineplot(reg=countries_reported, var="Inequality index|Gini")
 #recompute for missing models
-gini_recomputed <- iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, "Consumption\\|D")) %>% summarize(value=reldist::gini(value)) %>% mutate(Variable="Gini_recomputed")
+gini_recomputed <- iiasadb_data %>% group_by(Model, Region, Scenario, Year) %>% filter(str_detect(Variable, str_glue("{measure_inequality}\\|D"))) %>% summarize(value=reldist::gini(value)) %>% mutate(Variable="Gini_recomputed")
 #Add variable with reported or recomputed "Gini_full"
 all_ginis <- rbind(iiasadb_data %>% filter(Variable=="Inequality index|Gini"), gini_recomputed) %>% pivot_wider(id_cols = c(Model, Region, Scenario, Year), names_from = Variable) %>% mutate(Gini_full=ifelse(is.na(`Inequality index|Gini`), Gini_recomputed, `Inequality index|Gini`)) %>% pivot_longer(cols = c(`Inequality index|Gini`, Gini_recomputed, Gini_full), names_to = "Variable") 
 iiasadb_data <- rbind(iiasadb_data %>% filter(!str_detect(Variable, "Gini")), all_ginis)
@@ -261,7 +271,7 @@ iiasadb_data <- rbind(iiasadb_data %>% filter(!str_detect(Variable, "Gini")), al
 iamc_lineplot(reg=countries_reported_max, var="Gini_recomputed")
 
 #Incidence curve for Deliverable
-iamc_incidence_curve(scen0 = "REF", scen1 = "650", year = 2050, aggregate_use = "Consumption", Regions = countries_reported)
+iamc_incidence_curve(scen0 = "REF", scen1 = "650", year = 2050, aggregate_use = measure_inequality, Regions = countries_reported)
 
 
 
@@ -396,5 +406,12 @@ hutils::replace_pattern_in("carbon(.*)capita","Carbon revenue per capita", file_
 reg_epc_obs <- cbind(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population), predict(object = reg_carbrev, newdata = data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population)))
 table(reg_epc_obs$Model, reg_epc_obs$Region)
 
-#store data for impact post processing
-save(iiasadb_data, file = "inequality_mip_cleaned.Rdata")
+
+#check india
+data_welfare_effect_reordered %>% filter(Year %in% c(2050) & Region %in% "India") %>% mutate(source="data_welfare_effect_reordered")
+
+
+iiasadb_data %>% filter(Year %in% c(2050) & Region %in% "India" & ((Model=="AIM/PHI" & Scenario=="REF") | (Model=="ReMIND" & Scenario=="650") | (Model=="Imaclim" & Scenario=="650_redist")) & Variable %in% c("GDP|PPP", "Inequality Index|Gini"))
+
+
+

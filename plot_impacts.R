@@ -225,8 +225,8 @@ reg_dam_plot = function(spec, dir) {
   
 }
 
-reg_dam_plot(spec = "BHM", dir = "graphs")
-reg_dam_plot(spec = "Adaptation", dir = "graphs")
+reg_dam_plot(spec = "BHM", dir = graphdir)
+reg_dam_plot(spec = "Adaptation", dir = graphdir)
 
 #### GINI impacts ####
 gini_plot = function(spec, dir) {
@@ -345,8 +345,8 @@ gini_plot = function(spec, dir) {
   
 }
 
-gini_plot(spec = "BHM", dir = "graphs")
-gini_plot(spec = "Adaptation", dir = "graphs")
+gini_plot(spec = "BHM", dir = graphdir)
+gini_plot(spec = "Adaptation", dir = graphdir)
 
 # produces regression table of Delta Gini on Delta regional temperature
 
@@ -383,10 +383,10 @@ stargazer(gini_temp_reg,
           header=F,
           float=T,
           single.row = T,
-          out = paste0("graphs/", spec, "_gini_temp_reg",".tex")
+          out = paste0(graphdir, "/", spec, "_gini_temp_reg",".tex")
 )
 
-graphdir = "graphs"
+graphdir = graphdir
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("deltatemp","Change in temperature", file_pattern="*.tex", basedir = graphdir)
 
@@ -541,8 +541,8 @@ decile_plot = function (spec, dir) {
   
 }
 
-decile_plot(spec = "BHM", dir = "graphs")
-decile_plot(spec = "Adaptation", dir = "graphs")
+decile_plot(spec = "BHM", dir = graphdir)
+decile_plot(spec = "Adaptation", dir = graphdir)
 
 decile_plot_sel_years = function(spec, dir) {
   
@@ -679,5 +679,5 @@ decile_plot_sel_years = function(spec, dir) {
   
 }
 
-decile_plot_sel_years(spec = "BHM", dir = "graphs")
-decile_plot_sel_years(spec = "Adaptation", dir = "graphs")
+decile_plot_sel_years(spec = "BHM", dir = graphdir)
+decile_plot_sel_years(spec = "Adaptation", dir = graphdir)

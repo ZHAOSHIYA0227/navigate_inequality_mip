@@ -2,6 +2,7 @@ library(tidyverse)
 library(zoo)
 library(reldist)
 library(here)
+library(stargazer)
 
 #### Load deciles data ####
 load(here("data", "inequalit_mip_full.Rdata"))
@@ -103,7 +104,7 @@ policy_df <- mip_income_d %>%
     values_from = Decile_income
   ) %>% 
   mutate(
-    delta_income_policy = REF - `650`
+    delta_income_policy = `650` - REF
   ) %>% 
   group_by(Model, Region, Year) %>% 
   mutate(
@@ -112,7 +113,7 @@ policy_df <- mip_income_d %>%
   )
 
 # Regressing difference in decile-level income due to policy on income levels under REF
-policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model - 1,
+policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model + Region - 1,
                         data = policy_df)
 
 stargazer(policy_impact_reg,

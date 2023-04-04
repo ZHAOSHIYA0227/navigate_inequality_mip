@@ -151,7 +151,8 @@ p_fl <- ggplot(ref_emissions %>%
   geom_hline(yintercept = 0, linetype = "dashed") +
   xlim(c(2020, 2100)) +
   facet_wrap(~ Scenario_type) +
-  labs(y = "Gt CO2/yr", title = "Flow: annual emissions") 
+  labs(y = "Gt CO2/yr", title = "Flow: annual emissions") +
+  theme_bw() 
 
 # Cumulative emissions, by scenario type
 p_st <- ggplot(ref_emissions %>% 
@@ -161,7 +162,8 @@ p_st <- ggplot(ref_emissions %>%
   geom_hline(aes(yintercept = budget), linetype = "dashed") +
   xlim(c(2020, 2100)) +
   facet_wrap(~ Scenario_type) +
-  labs(y = "Gt CO2", title = "Stock: cumulative emissions") 
+  labs(y = "Gt CO2", title = "Stock: cumulative emissions") +
+  theme_bw()
 
 
 #### Compute global temperature anomaly ####
@@ -179,7 +181,8 @@ p_t <- ggplot(ref_emissions %>%
                 color = Model, linetype = Scenario)) +
   xlim(c(2020, 2100)) +
   labs(y = "Degrees Celsius", title = "Temperature anomaly") +
-  facet_wrap(~ Scenario_type)
+  facet_wrap(~ Scenario_type) +
+  theme_bw()
 
 ggarrange(p_fl, p_st, p_t, nrow = 3, ncol = 1,
           common.legend = T, legend = "right")

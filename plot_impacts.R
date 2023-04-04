@@ -6,7 +6,8 @@
 # Save temperature data
 mip_50_final <- mip_income_d %>% 
   filter(Model == "E3ME" | Model == "AIM/PHI") %>% 
-  filter(Year == 2050) %>% 
+  # filter(Year == 2050) %>% 
+  group_by(Model, Region) %>% 
   mutate(
     temp_final = temp_regional,
     delta_temp = temp_final - temp_start
@@ -16,7 +17,8 @@ mip_50_final <- mip_income_d %>%
 
 mip_100_final <- mip_income_d %>% 
   filter(Model != "E3ME" & Model != "AIM/PHI") %>% 
-  filter(Year == 2100) %>% 
+  # filter(Year == 2100) %>% 
+  group_by(Model, Region) %>% 
   mutate(
     temp_final = temp_regional,
     delta_temp = temp_final - temp_start

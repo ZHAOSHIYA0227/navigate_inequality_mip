@@ -1,6 +1,6 @@
 library(ggpubr)
 
-load(here("data", "inequalit_mip_full.Rdata"))
+# load(here("data", "inequalit_mip_full.Rdata"))
 
 #### Compute global emissions by Scenario-Model-Year ####
 
@@ -15,7 +15,7 @@ load(here("data", "inequalit_mip_full.Rdata"))
 
 ### I will create manually a subset for each model and compute global emissions 
 
-df_imaclim <- iiasadb_data %>%
+df_imaclim <- mip_data %>%
   filter(Model == "Imaclim") %>% 
   filter(Variable == "Emissions|CO2") %>% 
   filter(Region == "WLD") %>% 
@@ -26,7 +26,7 @@ df_imaclim <- iiasadb_data %>%
     global_emissions = sum(`Emissions|CO2`)
   )
 
-df_geme3 <- iiasadb_data %>%
+df_geme3 <- mip_data %>%
   filter(Model == "GEM-E3") %>% 
   filter(Variable == "Emissions|CO2") %>% 
   filter(Region == "WORLD") %>% 
@@ -37,7 +37,7 @@ df_geme3 <- iiasadb_data %>%
     global_emissions = sum(`Emissions|CO2`)
   )
 
-df_nice <- iiasadb_data %>%
+df_nice <- mip_data %>%
   filter(Model == "NICE") %>% 
   filter(Variable == "Emissions|CO2") %>% 
   filter(Region == "WORLD") %>% 
@@ -48,7 +48,7 @@ df_nice <- iiasadb_data %>%
     global_emissions = sum(`Emissions|CO2`)
   )
 
-df_remind <- iiasadb_data %>%
+df_remind <- mip_data %>%
   filter(Model == "REMIND") %>% 
   filter(Variable == "Emissions|CO2") %>% 
   pivot_wider(names_from = "Variable", 
@@ -58,7 +58,7 @@ df_remind <- iiasadb_data %>%
     global_emissions = sum(`Emissions|CO2`)
   )
 
-df_aim <- iiasadb_data %>%
+df_aim <- mip_data %>%
   filter(Model == "AIM/PHI") %>% 
   filter(Variable == "Emissions|CO2") %>% 
   pivot_wider(names_from = "Variable", 
@@ -68,7 +68,7 @@ df_aim <- iiasadb_data %>%
     global_emissions = sum(`Emissions|CO2`)
   )
 
-df_e3me <- iiasadb_data %>% 
+df_e3me <- mip_data %>% 
   filter(Model == "E3ME") %>% 
   filter(Variable == "Emissions|CO2|Energy and Industrial Processes") %>% 
   pivot_wider(names_from = "Variable", 
@@ -78,7 +78,7 @@ df_e3me <- iiasadb_data %>%
     global_emissions = sum(`Emissions|CO2|Energy and Industrial Processes`)
   )
 
-df_rice <- iiasadb_data %>%
+df_rice <- mip_data %>%
   filter(Model == "RICE50+") %>% 
   filter(Variable == "Emissions|CO2") %>% 
   pivot_wider(names_from = "Variable", 
@@ -88,7 +88,7 @@ df_rice <- iiasadb_data %>%
     global_emissions = sum(`Emissions|CO2`)
   )
 
-df_witch <- iiasadb_data %>%
+df_witch <- mip_data %>%
   filter(Model == "WITCH") %>% 
   filter(Variable == "Emissions|CO2") %>%
   filter(Region == "world") %>% 

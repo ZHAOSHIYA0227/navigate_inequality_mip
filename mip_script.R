@@ -36,12 +36,6 @@ gdp_ppp <- mip_data %>%
     lgdp_pc = log(gdp_ppp_dollars/pop_total) 
   )
 
-gdp_usa <- gdp_ppp %>% 
-  filter(Region == "USA" & Year == 2010)
-
-pop_usa <- pop %>% 
-  filter(Region == "USA" & Year == 2010)
-
 
 # compute income levels by decile
 mip_income_d <- mip_income_d %>% 

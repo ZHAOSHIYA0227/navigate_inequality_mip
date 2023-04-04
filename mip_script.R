@@ -5,7 +5,7 @@ library(here)
 library(stargazer)
 
 #### Load deciles data ####
-load(here("data", "inequalit_mip_full.Rdata"))
+load(here("inequality_mip_full.Rdata"))
 
 mip_data <- iiasadb_data
 
@@ -123,7 +123,8 @@ stargazer(policy_impact_reg,
 graphdir = "graphs"
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("REFrel", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
-
+reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata = policy_df)) %>% filter(!is.na(...10))
+table(reg_policy_obs$Model, reg_policy_obs$Region)
 
 #### Compute damages: region-level ####
 

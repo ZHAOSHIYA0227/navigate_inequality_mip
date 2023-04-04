@@ -5,7 +5,7 @@ library(here)
 library(stargazer)
 
 #### Load deciles data ####
-load(here("inequality_mip_full.Rdata"))
+load(here("data", "inequalit_mip_full.Rdata"))
 
 mip_data <- iiasadb_data
 
@@ -85,7 +85,7 @@ mip_income_d <- mip_income_d %>%
     Decile = substr(Decile, start = 8, stop = nchar(Decile)),
     Decile = gsub('_level', '', Decile)
   ) %>% 
-  filter(Year >= 2020)
+  filter(Year >= 2015)
 
 #### Compute income elasticity of policy impacts ####
 
@@ -104,10 +104,11 @@ policy_df <- mip_income_d %>%
   mutate(
     country_y_ref = sum(REF, na.rm = T),
     REFrel = REF/country_y_ref
-  )
+  ) %>% 
+  filter(Year <= 2050)
 
 # Regressing difference in decile-level income due to policy on income levels under REF
-policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model + Region - 1,
+policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model - 1,
                         data = policy_df)
 
 stargazer(policy_impact_reg,
@@ -122,7 +123,6 @@ stargazer(policy_impact_reg,
 graphdir = "graphs"
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("REFrel", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
-
 
 
 #### Compute damages: region-level ####
@@ -186,19 +186,21 @@ mip_income_reg <- mip_income_reg %>%
 
 # Loops for growth effect on regional GDP
 
-### under BHM specification
-mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==1] = mip_income_reg$gdp_start[mip_income_reg$t==1]
+time_length <- length(unique(mip_income_reg$t))-1
 
-for (i in 2:length(unique(mip_income_reg$t))) {
+### under BHM specification
+mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==0] = mip_income_reg$gdp_start[mip_income_reg$t==0]
+
+for (i in 1:time_length) {
   mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==i] = (1 + mip_income_reg$growth_counter[mip_income_reg$t==i]
                                                      + mip_income_reg$d[mip_income_reg$t==i])*mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==i-1]
 }
 
 ### under Adaptation specification
-mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==1] = mip_income_reg$gdp_start[mip_income_reg$t==1]
+mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==0] = mip_income_reg$gdp_start[mip_income_reg$t==0]
 
 # loop for growth rates, includes d factor inside
-for (i in 2:length(unique(mip_income_reg$t))) {
+for (i in 1:time_length) {
   
   mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i] =
     # growth rates without impacts, counterfactual
@@ -211,7 +213,6 @@ for (i in 2:length(unique(mip_income_reg$t))) {
     )*
     mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]
 }
-
 
 #### Compute damages: decile-level ####
 
@@ -255,11 +256,11 @@ for(i in 1:10) {
 
 ## Initial value of impacted decile income
 for(j in 1:10) {
-  mip_income_d$Dec_with_impact_bhm[mip_income_d$t==1 & mip_income_d$dist_num==j] = mip_income_d$Decile_income_start[mip_income_d$t==1 & mip_income_d$dist_num==j]
+  mip_income_d$Dec_with_impact_bhm[mip_income_d$t==0 & mip_income_d$dist_num==j] = mip_income_d$Decile_income_start[mip_income_d$t==0 & mip_income_d$dist_num==j]
 }
 
 # Compute impacted decile income for every period
-for (i in 2:17) {
+for (i in 1:time_length) {
   for (j in 1:10) {
     mip_income_d$Dec_with_impact_bhm[mip_income_d$t==i & mip_income_d$dist_num==j] = (1 + mip_income_d$dist_growth_counter[mip_income_d$t==i & mip_income_d$dist_num==j] +
                                                                                       mip_income_d$d_dist_bhm[mip_income_d$t==i & mip_income_d$dist_num==j])*mip_income_d$Dec_with_impact_bhm[mip_income_d$t==i-1 & mip_income_d$dist_num==j]
@@ -302,11 +303,11 @@ mip_income_d <- mip_income_d %>%
 
 ## Initial value of impacted decile income
 for(j in 1:10) {
-  mip_income_d$Dec_with_impact_ada[mip_income_d$t==1 & mip_income_d$dist_num==j] = mip_income_d$Decile_income_start[mip_income_d$t==1 & mip_income_d$dist_num==j]
+  mip_income_d$Dec_with_impact_ada[mip_income_d$t==0 & mip_income_d$dist_num==j] = mip_income_d$Decile_income_start[mip_income_d$t==0 & mip_income_d$dist_num==j]
 }
 
 # Compute impacted decile income for every period, with d factor inside loop
-for (i in 2:17) {
+for (i in 1:time_length) {
   for (j in 1:10) {
     mip_income_d$Dec_with_impact_ada[mip_income_d$t==i & mip_income_d$dist_num==j] =
       (1 + 

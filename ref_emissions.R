@@ -1,6 +1,5 @@
 library(ggpubr)
 
-# load(here("data", "inequalit_mip_full.Rdata"))
 
 #### Compute global emissions by Scenario-Model-Year ####
 
@@ -49,7 +48,7 @@ df_nice <- mip_data %>%
   )
 
 df_remind <- mip_data %>%
-  filter(Model == "REMIND") %>% 
+  filter(Model == "ReMIND") %>% 
   filter(Variable == "Emissions|CO2") %>% 
   pivot_wider(names_from = "Variable", 
               values_from = "value") %>% 

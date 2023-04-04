@@ -5,7 +5,7 @@ library(here)
 library(stargazer)
 
 #### Load deciles data ####
-load(here("data", "inequalit_mip_full.Rdata"))
+load(here("inequality_mip_full.Rdata"))
 
 mip_data <- iiasadb_data
 

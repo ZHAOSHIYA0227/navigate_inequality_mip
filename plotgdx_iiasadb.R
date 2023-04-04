@@ -55,7 +55,7 @@ iiasadb_data <- rbind(iiasadb_data, upload2iiasa("WITCH-WP4-v5.xlsx") %>% mutate
 #RICE
 iiasadb_data <- rbind(iiasadb_data, upload2iiasa("RICE50x_v2.xlsx"))
 #NICE
-iiasadb_data <- rbind(iiasadb_data, rbind(upload2iiasa("NICE_WP4_sent_191222.xlsx"), upload2iiasa("NICE_WP4_sent_191222.xlsx") %>% filter(Variable=="Emissions|CO2|Energy and Industrial Processes") %>% mutate(Variable="Emissions|CO2")) )
+iiasadb_data <- rbind(iiasadb_data, rbind(upload2iiasa("NICE_WP4_sent_191222.xlsx"), upload2iiasa("NICE_WP4_sent_191222.xlsx") %>% filter(Variable=="Emissions|CO2|Energy and Industrial Processes" & Region!="WORLD") %>% mutate(Variable="Emissions|CO2")) )
 #IMACLIM
 iiasadb_data <- rbind(iiasadb_data, upload2iiasa("IMACLIM_WP4_sent_201222.xlsx"))
 
@@ -122,7 +122,7 @@ iiasadb_data <- iiasadb_data %>%
 ggplot(iiasadb_data %>% group_by(Model, Scenario) %>% summarize(regions=length(unique(Region)), variables=length(unique(Variable))), aes(Model,Scenario, fill = variables*regions)) + geom_tile() + geom_text(aes(label=str_glue("Var:{variables}, N:{regions}"))) + theme_minimal() + scale_fill_gradient2(low = "white", mid = "yellow", high = "darkgreen") + xlab("") + ylab("") + ggtitle(str_glue("Scenario submissions ({nrow(iiasadb_data %>% ungroup() %>% group_by(Model, Scenario) %>% summarize(n=1))} as of {format(Sys.time(), '%d %b %Y')})")) + guides(fill="none")
 saveplot("Scenario matrix")
 
-save(iiasadb_data, file = "inequalit_mip_full.Rdata")
+save(iiasadb_data, file = "inequality_mip_full.Rdata")
 
 
 ###########################################################################
@@ -393,8 +393,8 @@ stargazer::stargazer(reg_carbrev, type = "latex", single.row = T, out = paste0(g
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("carbon(.*)capita","Carbon revenue per capita", file_pattern="*.tex", basedir = graphdir)
 
-reg_epc_obs <- cbind(predict(object = reg_carbrev, newdata = data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population)))
-
+reg_epc_obs <- cbind(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population), predict(object = reg_carbrev, newdata = data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population)))
+table(reg_epc_obs$Model, reg_epc_obs$Region)
 
 #store data for impact post processing
 save(iiasadb_data, file = "inequality_mip_cleaned.Rdata")

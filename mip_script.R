@@ -8,7 +8,7 @@ library(stargazer)
 
 #check if plotgdx_iiasadb.R has been run before)
 if(!exists("measure_inequality")){
-measure_inequality <- "Income"
+measure_inequality <- "Consumption"
 graphdir <- paste0("graphs_", measure_inequality)
 load(here("inequality_mip_full.Rdata"))
 }

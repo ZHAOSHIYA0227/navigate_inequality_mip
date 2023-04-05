@@ -160,9 +160,14 @@ a2 <- coefs_ada[11, 5]
 
 # First, create a "t" variable with 2015 ==> t=0
 mip_income_d <- mip_income_d %>% 
+  filter(Year >= 2020) %>% # change here if you want to start in 2015
   mutate(
-    t = (Year - 2015)/5
+    t = (Year - 2015)/5 # +1 
   )
+
+# # try only one scenario
+# mip_income_d <- mip_income_d %>% 
+#   filter(Scenario == "REF")
 
 # counterfactual growth rates of regional GDP
 ## creating a region-level dataframe (re-merge later)
@@ -196,30 +201,30 @@ mip_income_reg <- mip_income_reg %>%
 
 # Loops for growth effect on regional GDP
 
-time_length <- length(unique(mip_income_reg$t))-1
+time_length <- length(unique(mip_income_reg$t))
 
 ### under BHM specification
-mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==0] = mip_income_reg$gdp_start[mip_income_reg$t==0]
+mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==1] = mip_income_reg$gdp_start[mip_income_reg$t==1]
 
-for (i in 1:time_length) {
+for (i in 2:time_length) {
   mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==i] = (1 + mip_income_reg$growth_counter[mip_income_reg$t==i]
-                                                     + mip_income_reg$d[mip_income_reg$t==i])*mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==i-1]
+                                                             + mip_income_reg$d[mip_income_reg$t==i])*mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==i-1]
 }
 
 ### under Adaptation specification
-mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==0] = mip_income_reg$gdp_start[mip_income_reg$t==0]
+mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==1] = mip_income_reg$gdp_start[mip_income_reg$t==1]
 
 # loop for growth rates, includes d factor inside
-for (i in 1:time_length) {
+for (i in 2:time_length) {
   
   mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i] =
     # growth rates without impacts, counterfactual
     (1 + mip_income_reg$growth_counter[mip_income_reg$t==i] +
        # damage factor
        (mip_income_reg$temp_regional[mip_income_reg$t==i] - mip_income_reg$temp_start[mip_income_reg$t==i])*(b1 + a1*rollmean( log(mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]),  
-                                                                                                              5, align = 'right', fill = "extend")) +
+                                                                                                                               5, align = 'right', fill = "extend")) +
        ((mip_income_reg$temp_regional[mip_income_reg$t==i])^2 - (mip_income_reg$temp_start[mip_income_reg$t==i])^2)*(b2 + a2*rollmean(log( mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]),
-                                                                                                                     5, align = 'right', fill = "extend"))
+                                                                                                                                      5, align = 'right', fill = "extend"))
     )*
     mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]
 }
@@ -258,7 +263,7 @@ mip_income_d$dist_num <- as.numeric(gsub(".*?([0-9]+).*", "\\1",
 # Compute damage factor on growth rates of decile income
 for(i in 1:10) {
   mip_income_d$d_dist_bhm[mip_income_d$dist_num == i] <-  (mip_income_d$temp_regional[mip_income_d$dist_num == i]
-                                                       - mip_income_d$temp_start[mip_income_d$dist_num == i])*coefs_bhm[i,2] +
+                                                           - mip_income_d$temp_start[mip_income_d$dist_num == i])*coefs_bhm[i,2] +
     (mip_income_d$temp_regional[mip_income_d$dist_num == i]^2 -
        mip_income_d$temp_start[mip_income_d$dist_num == i]^2)*coefs_bhm[i,3]
   
@@ -266,14 +271,14 @@ for(i in 1:10) {
 
 ## Initial value of impacted decile income
 for(j in 1:10) {
-  mip_income_d$Dec_with_impact_bhm[mip_income_d$t==0 & mip_income_d$dist_num==j] = mip_income_d$Decile_income_start[mip_income_d$t==0 & mip_income_d$dist_num==j]
+  mip_income_d$Dec_with_impact_bhm[mip_income_d$t==1 & mip_income_d$dist_num==j] = mip_income_d$Decile_income_start[mip_income_d$t==1 & mip_income_d$dist_num==j]
 }
 
 # Compute impacted decile income for every period
-for (i in 1:time_length) {
+for (i in 2:time_length) {
   for (j in 1:10) {
     mip_income_d$Dec_with_impact_bhm[mip_income_d$t==i & mip_income_d$dist_num==j] = (1 + mip_income_d$dist_growth_counter[mip_income_d$t==i & mip_income_d$dist_num==j] +
-                                                                                      mip_income_d$d_dist_bhm[mip_income_d$t==i & mip_income_d$dist_num==j])*mip_income_d$Dec_with_impact_bhm[mip_income_d$t==i-1 & mip_income_d$dist_num==j]
+                                                                                        mip_income_d$d_dist_bhm[mip_income_d$t==i & mip_income_d$dist_num==j])*mip_income_d$Dec_with_impact_bhm[mip_income_d$t==i-1 & mip_income_d$dist_num==j]
   }
 }
 
@@ -313,11 +318,11 @@ mip_income_d <- mip_income_d %>%
 
 ## Initial value of impacted decile income
 for(j in 1:10) {
-  mip_income_d$Dec_with_impact_ada[mip_income_d$t==0 & mip_income_d$dist_num==j] = mip_income_d$Decile_income_start[mip_income_d$t==0 & mip_income_d$dist_num==j]
+  mip_income_d$Dec_with_impact_ada[mip_income_d$t==1 & mip_income_d$dist_num==j] = mip_income_d$Decile_income_start[mip_income_d$t==1 & mip_income_d$dist_num==j]
 }
 
 # Compute impacted decile income for every period, with d factor inside loop
-for (i in 1:time_length) {
+for (i in 2:time_length) {
   for (j in 1:10) {
     mip_income_d$Dec_with_impact_ada[mip_income_d$t==i & mip_income_d$dist_num==j] =
       (1 + 
@@ -359,6 +364,7 @@ mip_income_d <- mip_income_d %>%
     gini_impact_ada = reldist::gini(Dec_with_impact_ada),
     delta_gini_ada = gini_impact_ada - gini_counter
   )
+
 #### Create dataframe with post-processed impacts, for all models and scenarios ####
 
 ### 2 Variables to add to mip_data, per spec = 4 total 

@@ -115,7 +115,7 @@ policy_df <- mip_income_d %>%
     country_y_ref = sum(REF, na.rm = T),
     REFrel = REF/country_y_ref
   ) %>% 
-  filter(Year <= 2050)
+  filter(Year >= 2020 & Year <= 2050)
 
 # Regressing difference in decile-level income due to policy on income levels under REF
 policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model - 1,

@@ -552,6 +552,7 @@ decile_plot_sel_years = function(spec, dir) {
     
     # Decile-level impacts in 2100, both Scenarios
     p_dec_sel_100 <-  ggplot(mip_income_d %>% 
+                               na.omit() %>% 
                                filter(Scenario == "REF" | Scenario == "650"
                                ) %>% 
                                filter(Year == 2100) %>%
@@ -577,25 +578,25 @@ decile_plot_sel_years = function(spec, dir) {
     
     # Avoided decile-level impacts in 2100, from 650 relative to REF
     p_dec_avoided_100 <- ggplot(mip_income_d %>% 
-             na.omit() %>% 
-             filter(Scenario == "REF" | Scenario == "650") %>% 
-               filter(Year == 2100) %>%
-             select(Scenario:Year, Decile, dam_dist_frac_bhm) %>% 
-             distinct() %>% 
-             mutate(
-               dam_dist_frac_bhm = dam_dist_frac_bhm*100,
-               Decile = factor(Decile,
-                               levels = c("D1", "D2", "D3", "D4", "D5",
-                                          "D6", "D7", "D8", "D9", "D10"))
-             ) %>% 
-             pivot_wider(
-               names_from = Scenario,
-               values_from = dam_dist_frac_bhm
-             ) %>% 
-             mutate(avoided_reg_dam_bhm = REF - `650`),
-           aes(x = Model, y = avoided_reg_dam_bhm)) +
+                                  na.omit() %>% 
+                                  filter(Scenario == "REF" | Scenario == "650") %>% 
+                                  filter(Year == 2100) %>%
+                                  select(Scenario:Year, Decile, dam_dist_frac_bhm) %>% 
+                                  distinct() %>% 
+                                  mutate(
+                                    dam_dist_frac_bhm = dam_dist_frac_bhm*100,
+                                    Decile = factor(Decile,
+                                                    levels = c("D1", "D2", "D3", "D4", "D5",
+                                                               "D6", "D7", "D8", "D9", "D10"))
+                                  ) %>% 
+                                  pivot_wider(
+                                    names_from = Scenario,
+                                    values_from = dam_dist_frac_bhm
+                                  ) %>% 
+                                  mutate(avoided_reg_dam_bhm = REF - `650`),
+                                aes(x = Model, y = avoided_reg_dam_bhm)) +
       geom_bar(aes(group = Decile, fill = Decile),
-                       stat = "identity", position = position_dodge(0.9), width = 2) +
+               stat = "identity", position = position_dodge(0.9), width = 2) +
       labs(x = "Model", y = "Avoided damages, %",
            title = "Avoided damages at decile level in 2100",
            subtitle = "Without adaptation") + 
@@ -610,61 +611,62 @@ decile_plot_sel_years = function(spec, dir) {
   }
   
   if(spec == "Adaptation") {
-  
- p_dec_sel_100 <-  ggplot(mip_income_d %>% 
-           filter(Scenario == "REF" | Scenario == "650"
-           ) %>% 
-           filter(Year == 2100) %>%
-           mutate(Decile = factor(Decile,
-                                  levels = c("D1", "D2", "D3", "D4", "D5",
-                                             "D6", "D7", "D8", "D9", "D10"))) ,
-         aes(x = Model, y = dam_dist_frac_ada*100)) +
-    geom_bar_pattern(aes(pattern = Scenario,
-                         group = Decile, fill = Decile),
-                     stat = "identity", position = position_dodge(0.9), width = 2) +
-    labs(x = "Model", y = "Damages, %",
-         title = "Damages at decile level in 2100") + 
-    scale_fill_manual(name = "Income deciles", values = colors_deciles) +
-    scale_pattern_manual(name = "Scenario", values = c("plasma", "stripe")) +
-    facet_wrap(~ Region, ncol = 5) +
-    scale_x_discrete(guide = guide_axis(n.dodge=2)) +
-   theme_bw() +
-    theme(panel.spacing.x = unit(6, "mm"),
-          legend.position="bottom",
-          plot.title = element_text(hjust = 0.5))
- 
- # Avoided decile-level impacts in 2100, from 650 relative to REF
- p_dec_avoided_100 <- ggplot(mip_income_d %>% 
+    
+    p_dec_sel_100 <-  ggplot(mip_income_d %>% 
                                na.omit() %>% 
-                               filter(Scenario == "REF" | Scenario == "650") %>% 
+                               filter(Scenario == "REF" | Scenario == "650"
+                               ) %>% 
                                filter(Year == 2100) %>%
-                               select(Scenario:Year, Decile, dam_dist_frac_ada) %>% 
-                               distinct() %>% 
-                               mutate(
-                                 dam_dist_frac_ada = dam_dist_frac_ada*100,
-                                 Decile = factor(Decile,
-                                                 levels = c("D1", "D2", "D3", "D4", "D5",
-                                                            "D6", "D7", "D8", "D9", "D10"))
-                               ) %>% 
-                               pivot_wider(
-                                 names_from = Scenario,
-                                 values_from = dam_dist_frac_ada
-                               ) %>% 
-                               mutate(avoided_reg_dam_ada = REF - `650`),
-                             aes(x = Model, y = avoided_reg_dam_ada)) +
-   geom_bar(aes(group = Decile, fill = Decile),
-            stat = "identity", position = position_dodge(0.9), width = 2) +
-   labs(x = "Model", y = "Avoided damages, %",
-        title = "Avoided damages at decile level in 2100") + 
-   scale_fill_manual(name = "Income deciles", values = colors_deciles) +
-   facet_wrap(~ Region, ncol = 5) +
-   scale_x_discrete(guide = guide_axis(n.dodge=2)) +
-   theme_bw() +
-   theme(panel.spacing.x = unit(6, "mm"),
-         legend.position="bottom",
-         plot.title = element_text(hjust = 0.5))
- 
- 
+                               mutate(Decile = factor(Decile,
+                                                      levels = c("D1", "D2", "D3", "D4", "D5",
+                                                                 "D6", "D7", "D8", "D9", "D10"))) ,
+                             aes(x = Model, y = dam_dist_frac_ada*100)) +
+      geom_bar_pattern(aes(pattern = Scenario,
+                           group = Decile, fill = Decile),
+                       stat = "identity", position = position_dodge(0.9), width = 2) +
+      labs(x = "Model", y = "Damages, %",
+           title = "Damages at decile level in 2100") + 
+      scale_fill_manual(name = "Income deciles", values = colors_deciles) +
+      scale_pattern_manual(name = "Scenario", values = c("plasma", "stripe")) +
+      facet_wrap(~ Region, ncol = 5) +
+      scale_x_discrete(guide = guide_axis(n.dodge=2)) +
+      theme_bw() +
+      theme(panel.spacing.x = unit(6, "mm"),
+            legend.position="bottom",
+            plot.title = element_text(hjust = 0.5))
+    
+    # Avoided decile-level impacts in 2100, from 650 relative to REF
+    p_dec_avoided_100 <- ggplot(mip_income_d %>% 
+                                  na.omit() %>% 
+                                  filter(Scenario == "REF" | Scenario == "650") %>% 
+                                  filter(Year == 2100) %>%
+                                  select(Scenario:Year, Decile, dam_dist_frac_ada) %>% 
+                                  distinct() %>% 
+                                  mutate(
+                                    dam_dist_frac_ada = dam_dist_frac_ada*100,
+                                    Decile = factor(Decile,
+                                                    levels = c("D1", "D2", "D3", "D4", "D5",
+                                                               "D6", "D7", "D8", "D9", "D10"))
+                                  ) %>% 
+                                  pivot_wider(
+                                    names_from = Scenario,
+                                    values_from = dam_dist_frac_ada
+                                  ) %>% 
+                                  mutate(avoided_reg_dam_ada = REF - `650`),
+                                aes(x = Model, y = avoided_reg_dam_ada)) +
+      geom_bar(aes(group = Decile, fill = Decile),
+               stat = "identity", position = position_dodge(0.9), width = 2) +
+      labs(x = "Model", y = "Avoided damages, %",
+           title = "Avoided damages at decile level in 2100") + 
+      scale_fill_manual(name = "Income deciles", values = colors_deciles) +
+      facet_wrap(~ Region, ncol = 5) +
+      scale_x_discrete(guide = guide_axis(n.dodge=2)) +
+      theme_bw() +
+      theme(panel.spacing.x = unit(6, "mm"),
+            legend.position="bottom",
+            plot.title = element_text(hjust = 0.5))
+    
+    
   }
   
   ggsave(filename = paste0(spec, "_decile_damages_2100.png"),

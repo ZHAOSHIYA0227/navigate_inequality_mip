@@ -95,20 +95,20 @@ mip_income_d <- mip_income_d %>%
     Decile = substr(Decile, start = 8, stop = nchar(Decile)),
     Decile = gsub('_level', '', Decile)
   ) %>% 
-  filter(Year >= 2015)
+  filter(Year >= 2020)
 
 #### Compute income elasticity of policy impacts ####
 
 policy_df <- mip_income_d %>% 
   filter(Scenario == "REF" | Scenario == "650") %>% 
   select(Scenario, Model, Region, Year, Decile, Decile_income) %>% 
-  mutate(Decile_income = log(Decile_income)) %>% 
+  # mutate(Decile_income = log(Decile_income)) %>%
   pivot_wider(
     names_from = Scenario,
     values_from = Decile_income
   ) %>% 
   mutate(
-    delta_income_policy = `650` - REF
+    delta_income_policy = (`650` - REF)/REF
   ) %>% 
   group_by(Model, Region, Year) %>% 
   mutate(
@@ -136,6 +136,11 @@ reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata =
 table(reg_policy_obs$Model, reg_policy_obs$Region)
 
 #### Compute damages: region-level ####
+
+mean_rm = function(x){
+  mean(x, na.rm = T)
+}
+
 
 # Load coefficients for decile impact functions
 ## BHM
@@ -221,13 +226,14 @@ for (i in 2:time_length) {
     # growth rates without impacts, counterfactual
     (1 + mip_income_reg$growth_counter[mip_income_reg$t==i] +
        # damage factor
-       (mip_income_reg$temp_regional[mip_income_reg$t==i] - mip_income_reg$temp_start[mip_income_reg$t==i])*(b1 + a1*rollmean( log(mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]),  
-                                                                                                                               5, align = 'right', fill = "extend")) +
-       ((mip_income_reg$temp_regional[mip_income_reg$t==i])^2 - (mip_income_reg$temp_start[mip_income_reg$t==i])^2)*(b2 + a2*rollmean(log( mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]),
-                                                                                                                                      5, align = 'right', fill = "extend"))
+       (mip_income_reg$temp_regional[mip_income_reg$t==i] - mip_income_reg$temp_start[mip_income_reg$t==i])*(b1 + a1*rollapply( log(mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]),  
+                                                                                                                                5, mean_rm, na.pad = T, align = "left")) +
+       ((mip_income_reg$temp_regional[mip_income_reg$t==i])^2 - (mip_income_reg$temp_start[mip_income_reg$t==i])^2)*(b2 + a2*rollapply(log( mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]),
+                                                                                                                                       5, mean_rm, na.pad = T, align = "left"))
     )*
     mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]
 }
+
 
 #### Compute damages: decile-level ####
 
@@ -330,11 +336,11 @@ for (i in 2:time_length) {
          mip_income_d$dist_growth_counter[mip_income_d$t==i & mip_income_d$dist_num==j] +
          # damage factor
          (mip_income_d$temp_regional[mip_income_d$t==i & mip_income_d$dist_num==j] - mip_income_d$temp_start[mip_income_d$t==i & mip_income_d$dist_num==j])*
-         (coefs_ada[j,2] + coefs_ada[j,4]*rollmean(log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]),
-                                                   5, align = 'right', fill = "extend")) +
+         (coefs_ada[j,2] + coefs_ada[j,4]*rollapply(log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]),
+                                                    5,  mean_rm, na.pad = T, align = "left")) +
          (mip_income_d$temp_regional[mip_income_d$t==i & mip_income_d$dist_num==j]^2 - mip_income_d$temp_start[mip_income_d$t==i & mip_income_d$dist_num==j]^2)*
-         (coefs_ada[j,3] + coefs_ada[j,5]*rollmean(log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]),
-                                                   5, align = 'right', fill = "extend"))
+         (coefs_ada[j,3] + coefs_ada[j,5]*rollapply(log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]),
+                                                    5,  mean_rm, na.pad = T, align = "left"))
       )*
       mip_income_d$Dec_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]
   }
@@ -364,6 +370,7 @@ mip_income_d <- mip_income_d %>%
     gini_impact_ada = reldist::gini(Dec_with_impact_ada),
     delta_gini_ada = gini_impact_ada - gini_counter
   )
+
 
 #### Create dataframe with post-processed impacts, for all models and scenarios ####
 

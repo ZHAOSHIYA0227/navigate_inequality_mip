@@ -109,6 +109,8 @@ colors_deciles <- c("purple", rev(colorspace::diverging_hcl(9, "Cyan-Magenta")))
 #### GDP damages ####
 reg_dam_plot = function(spec, dir) {
   
+  theme_set(theme_bw(base_size = 12))
+  
   if(spec == "BHM") {
     
     # country-level damages
@@ -125,9 +127,9 @@ reg_dam_plot = function(spec, dir) {
            title = title) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
-      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5),
-            legend.position = "bottom")
+            legend.position = "bottom",
+            panel.spacing.x = unit(6, "mm"))
     
     # avoided country-level damages by going from REF to 650
     title_2 <- expression(atop(bold("Avoided damages from REF to 650, across countries"),
@@ -155,9 +157,9 @@ reg_dam_plot = function(spec, dir) {
            title = title_2) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
-      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5),
-            legend.position = "bottom")
+            legend.position = "bottom",
+            panel.spacing.x = unit(6, "mm"))
     
     
   }
@@ -231,6 +233,8 @@ reg_dam_plot(spec = "Adaptation", dir = graphdir)
 #### GINI impacts ####
 gini_plot = function(spec, dir) {
   
+  theme_set(theme_bw(base_size = 12))
+  
   if(spec == "BHM") {
     
     # Country-level impacts on Gini
@@ -247,9 +251,9 @@ gini_plot = function(spec, dir) {
            title = title) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
-      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5),
-            legend.position = "bottom")
+            legend.position = "bottom",
+            panel.spacing.x = unit(6, "mm"))
     
     # Avoided Gini impacts from REF to 650 scenario
     title_2 <- expression(atop(bold("Avoided impacts on Gini index from REF to 650, across countries"),
@@ -277,9 +281,9 @@ gini_plot = function(spec, dir) {
            title = title_2) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
-      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5),
-            legend.position = "bottom")
+            legend.position = "bottom",
+            panel.spacing.x = unit(6, "mm"))
     
   }
   
@@ -299,9 +303,9 @@ gini_plot = function(spec, dir) {
            title = title) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
-      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5),
-            legend.position = "bottom")
+            legend.position = "bottom",
+            panel.spacing.x = unit(6, "mm"))
     
     # Avoided Gini impacts from REF to 650 scenario
     title_2 <- expression(atop(bold("Avoided impacts on Gini index from REF to 650, across countries")))
@@ -328,9 +332,9 @@ gini_plot = function(spec, dir) {
            title = title_2) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
-      theme_bw() +
       theme(plot.title = element_text(hjust = 0.5),
-            legend.position = "bottom")
+            legend.position = "bottom",
+            panel.spacing.x = unit(6, "mm"))
   }
   
   ggsave(filename = paste0(spec, "_gini_impacts_all.png"),
@@ -405,6 +409,9 @@ decile_plot = function (spec, dir) {
   mod_letters_utf <- unlist(lapply(mod_letters, utf8ToInt))
   
   
+  theme_set(theme_bw(base_size = 12))
+  
+  
   if(spec == "BHM") {
     
     # Decile-level impacts
@@ -427,7 +434,6 @@ decile_plot = function (spec, dir) {
     scale_shape_manual(name = "Models", values = mod_letters_utf) +
     facet_wrap(~ Region, ncol = 5) +
     scale_x_continuous(limits = c(2020, 2100), breaks = c(2020, 2060, 2100)) +
-    theme_bw() +
     theme(panel.spacing.x = unit(6, "mm"),
           legend.position="bottom",
           plot.title = element_text(hjust = 0.5))
@@ -462,7 +468,6 @@ decile_plot = function (spec, dir) {
     scale_shape_manual(name = "Models", values = mod_letters_utf) +
     facet_wrap(~ Region, ncol = 5) +
     scale_x_continuous(limits = c(2020, 2100), breaks = c(2020, 2060, 2100)) +
-    theme_bw() +
     theme(panel.spacing.x = unit(6, "mm"),
           legend.position="bottom",
           plot.title = element_text(hjust = 0.5))
@@ -489,7 +494,6 @@ decile_plot = function (spec, dir) {
       scale_shape_manual(name = "Models", values = mod_letters_utf) +
       facet_wrap(~ Region, ncol = 5) +
       scale_x_continuous(limits = c(2020, 2100), breaks = c(2020, 2060, 2100)) +
-      theme_bw() +
       theme(panel.spacing.x = unit(6, "mm"),
             legend.position="bottom",
             plot.title = element_text(hjust = 0.5))
@@ -522,7 +526,6 @@ decile_plot = function (spec, dir) {
       scale_shape_manual(name = "Models", values = mod_letters_utf) +
       facet_wrap(~ Region, ncol = 5) +
       scale_x_continuous(limits = c(2020, 2100), breaks = c(2020, 2060, 2100)) +
-      theme_bw() +
       theme(panel.spacing.x = unit(6, "mm"),
             legend.position="bottom",
             plot.title = element_text(hjust = 0.5))

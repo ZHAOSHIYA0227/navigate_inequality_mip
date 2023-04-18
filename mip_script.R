@@ -14,7 +14,7 @@ load(here("inequality_mip_full.Rdata"))
 }
 
 
-
+theme_set(theme_minimal(base_size = 12))
 
 mip_data <- iiasadb_data
 

@@ -117,6 +117,14 @@ policy_df <- mip_income_d %>%
   ) %>% 
   filter(Year >= 2020 & Year <= 2050)
 
+#visual
+ggplot(policy_df) + geom_point(aes(REF, (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent)
+#by decile
+ggplot(policy_df) + geom_point(aes(as.numeric(gsub("D","",Decile)), (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + labs(x="Decile", y="Relative change from REF to 650") + scale_x_continuous(labels = seq(1,10), breaks=seq(1,10))
+saveplot("Policy Impact by Decile")
+
+
+
 # Regressing difference in decile-level income due to policy on income levels under REF
 policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model - 1,
                         data = policy_df)

@@ -5,7 +5,7 @@
 
 # Save temperature data
 mip_50_final <- mip_income_d %>% 
-  filter(Model == "E3ME" | Model == "AIM/PHI") %>% 
+  filter(Model == "E3ME" | Model == "AIM") %>% 
   # filter(Year == 2050) %>% 
   group_by(Model, Region) %>% 
   mutate(
@@ -16,7 +16,7 @@ mip_50_final <- mip_income_d %>%
   distinct()
 
 mip_100_final <- mip_income_d %>% 
-  filter(Model != "E3ME" & Model != "AIM/PHI") %>% 
+  filter(Model != "E3ME" & Model != "AIM") %>% 
   # filter(Year == 2100) %>% 
   group_by(Model, Region) %>% 
   mutate(
@@ -27,7 +27,7 @@ mip_100_final <- mip_income_d %>%
   distinct()
 
 # Filter out the models that already have their own impacts
-models_with_impacts <- c("NICE", "REMIND", "RICE50+")
+models_with_impacts <- c("NICE", "ReMIND", "RICE50+")
 
 ## Impacts under REF
 prova_ref <- mip_income_d  %>%

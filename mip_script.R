@@ -46,6 +46,30 @@ gdp_ppp <- mip_data %>%
     lgdp_pc = log(gdp_ppp_dollars/pop_total) 
   )
 
+# Decile columns are list, so first convert them to numeric columns
+# then append back
+
+conv_list = function (x) {
+  pippo <- x %>% 
+    set_names(seq(1, nrow(mip_income_d), by = 1)) %>% 
+    bind_rows()
+  
+  pippo <- pippo[1,]
+  
+  pippo <- data.frame(x = t(pippo))  
+}
+
+prova_list <- list()
+
+prova_list <- lapply(mip_income_d[,5:14],
+                     conv_list)
+
+decile_cols <- prova_list %>% bind_cols() 
+
+names(decile_cols) <- names(prova_list)
+
+mip_income_d <- mip_income_d %>% select(Scenario:Year) %>% cbind(decile_cols)
+
 
 # compute income levels by decile
 mip_income_d <- mip_income_d %>% 
@@ -126,7 +150,7 @@ saveplot("Policy Impact by Decile")
 
 
 # Regressing difference in decile-level income due to policy on income levels under REF
-policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model - 1,
+policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model -1,
                         data = policy_df)
 
 stargazer(policy_impact_reg,
@@ -140,8 +164,8 @@ stargazer(policy_impact_reg,
 
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("REFrel", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
-reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata = policy_df)) %>% filter(!is.na(...10))
-table(reg_policy_obs$Model, reg_policy_obs$Region)
+# reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata = policy_df)) %>% filter(!is.na(...10))
+# table(reg_policy_obs$Model, reg_policy_obs$Region)
 
 #### Compute damages: region-level ####
 
@@ -178,9 +202,6 @@ mip_income_d <- mip_income_d %>%
     t = (Year - 2015)/5 # +1 
   )
 
-# # try only one scenario
-# mip_income_d <- mip_income_d %>% 
-#   filter(Scenario == "REF")
 
 # counterfactual growth rates of regional GDP
 ## creating a region-level dataframe (re-merge later)

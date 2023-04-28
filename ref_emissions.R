@@ -59,7 +59,7 @@ df_remind <- mip_data %>%
   )
 
 df_aim <- mip_data %>%
-  filter(Model == "AIM/PHI") %>% 
+  filter(Model == "AIM") %>% 
   filter(Variable == "Emissions|CO2") %>% 
   pivot_wider(names_from = "Variable", 
               values_from = "value") %>% 
@@ -70,12 +70,14 @@ df_aim <- mip_data %>%
 
 df_e3me <- mip_data %>% 
   filter(Model == "E3ME") %>% 
-  filter(Variable == "Emissions|CO2|Energy and Industrial Processes") %>% 
+  filter(Variable == "Emissions|CO2") %>% 
+  # filter(Variable == "Emissions|CO2|Energy and Industrial Processes") %>% 
   pivot_wider(names_from = "Variable", 
               values_from = "value") %>% 
   group_by(Scenario, Model, Year) %>% 
   summarise(
-    global_emissions = sum(`Emissions|CO2|Energy and Industrial Processes`)
+    global_emissions = sum(`Emissions|CO2`)
+    # global_emissions = sum(`Emissions|CO2|Energy and Industrial Processes`)
   )
 
 df_rice <- mip_data %>%
@@ -114,7 +116,6 @@ ref_emissions <- ref_emissions %>%
 
 # Multiply 2100 emissions by 2.5 factor rather than 5
 ref_emissions$for_cum_5[ref_emissions$Year==2100] <- 2.5*ref_emissions$for_cum[ref_emissions$Year==2100]
-# ref_emissions$for_cum_5[ref_emissions$Year==2015] <- 2.5*ref_emissions$for_cum[ref_emissions$Year==2015]
 
 
 ref_emissions <- ref_emissions %>% 
@@ -190,4 +191,4 @@ ggarrange(p_fl, p_st, p_t, nrow = 3, ncol = 1,
           common.legend = T, legend = "right")
 
 ggsave(filename = "Emissions_Temperature_over_scenarios_global.png",
-       width = 9, height = 6, path = "graphs") 
+       width = 9, height = 6, path = graphdir) 

@@ -6,7 +6,7 @@ library(stargazer)
 
 #### Load deciles data ####
 
-#check if plotgdx_iiasadb.R has been run before)
+#check if master.R has been run before)
 if(!exists("measure_inequality")){
 measure_inequality <- "Consumption"
 graphdir <- paste0("graphs_", measure_inequality)
@@ -169,10 +169,6 @@ hutils::replace_pattern_in("REFrel", "Deciles under Reference scenario", file_pa
 
 #### Compute damages: region-level ####
 
-mean_rm = function(x){
-  mean(x, na.rm = T)
-}
-
 
 # Load coefficients for decile impact functions
 ## BHM
@@ -225,6 +221,7 @@ gdp_start <- mip_income_reg %>%
 mip_income_reg <- mip_income_reg %>% 
   full_join(gdp_start, by = c("Scenario", "Model", "Region", "Year"))
 
+
 # damage factor under BHM specification
 mip_income_reg <- mip_income_reg %>% 
   group_by(Scenario, Model, Region) %>% 
@@ -232,12 +229,22 @@ mip_income_reg <- mip_income_reg %>%
     d = (temp_regional - temp_start)*b1_bhm + (temp_regional^2 - temp_start^2)*b2_bhm
   )
 
+# Separate models that go until 2050 from the others (until 2100)
+mip_income_2050 <- mip_income_reg %>% 
+  filter(Model == "AIM" | Model == "E3ME")
+
+
+mip_income_reg <- mip_income_reg %>% 
+  filter(Model != "AIM" & Model != "E3ME")
+
 
 # Loops for growth effect on regional GDP
 
-time_length <- length(unique(mip_income_reg$t))
+time_length <- as.numeric(length(unique(mip_income_reg$t)))
 
 ### under BHM specification
+
+# For models with results until 2100
 mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==1] = mip_income_reg$gdp_start[mip_income_reg$t==1]
 
 for (i in 2:time_length) {
@@ -245,7 +252,19 @@ for (i in 2:time_length) {
                                                              + mip_income_reg$d[mip_income_reg$t==i])*mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==i-1]
 }
 
+
+# For models with results until 2050
+mip_income_2050$gdp_with_impact_bhm[mip_income_2050$t==1] = mip_income_2050$gdp_start[mip_income_2050$t==1]
+
+for (i in 2:7) {
+  mip_income_2050$gdp_with_impact_bhm[mip_income_2050$t==i] = (1 + mip_income_2050$growth_counter[mip_income_2050$t==i]
+                                                               + mip_income_2050$d[mip_income_2050$t==i])*mip_income_2050$gdp_with_impact_bhm[mip_income_2050$t==i-1]
+}
+
+
 ### under Adaptation specification
+
+# For models until 2100
 mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==1] = mip_income_reg$gdp_start[mip_income_reg$t==1]
 
 # loop for growth rates, includes d factor inside
@@ -255,14 +274,50 @@ for (i in 2:time_length) {
     # growth rates without impacts, counterfactual
     (1 + mip_income_reg$growth_counter[mip_income_reg$t==i] +
        # damage factor
-       (mip_income_reg$temp_regional[mip_income_reg$t==i] - mip_income_reg$temp_start[mip_income_reg$t==i])*(b1 + a1*rollapply( log(mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]),  
-                                                                                                                                5, mean_rm, na.pad = T, align = "left")) +
-       ((mip_income_reg$temp_regional[mip_income_reg$t==i])^2 - (mip_income_reg$temp_start[mip_income_reg$t==i])^2)*(b2 + a2*rollapply(log( mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]),
-                                                                                                                                       5, mean_rm, na.pad = T, align = "left"))
+       (mip_income_reg$temp_regional[mip_income_reg$t==i] - mip_income_reg$temp_start[mip_income_reg$t==i])*(b1 + a1*log(mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1])) +
+       ((mip_income_reg$temp_regional[mip_income_reg$t==i])^2 - (mip_income_reg$temp_start[mip_income_reg$t==i])^2)*(b2 + a2*log(mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]))
     )*
     mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]
 }
 
+# For models until 2050
+mip_income_2050$gdp_with_impact_ada[mip_income_2050$t==1] = mip_income_2050$gdp_start[mip_income_2050$t==1]
+
+# loop for growth rates, includes d factor inside
+for (i in 2:time_length) {
+  
+  mip_income_2050$gdp_with_impact_ada[mip_income_2050$t==i] =
+    # growth rates without impacts, counterfactual
+    (1 + mip_income_2050$growth_counter[mip_income_2050$t==i] +
+       # damage factor
+       (mip_income_2050$temp_regional[mip_income_2050$t==i] - mip_income_2050$temp_start[mip_income_2050$t==i])*(b1 + a1*log(mip_income_2050$gdp_with_impact_ada[mip_income_2050$t==i-1])) +
+       ((mip_income_2050$temp_regional[mip_income_2050$t==i])^2 - (mip_income_2050$temp_start[mip_income_2050$t==i])^2)*(b2 + a2*log(mip_income_2050$gdp_with_impact_ada[mip_income_2050$t==i-1]))
+    )*
+    mip_income_2050$gdp_with_impact_ada[mip_income_2050$t==i-1]
+}
+
+mip_income_reg <- rbind(mip_income_reg, mip_income_2050) # append them back together
+
+mip_income_reg <- mip_income_reg %>% 
+  group_by(Scenario, Model, Region) %>% 
+  mutate(
+    damages_bhm = gdp_pc - gdp_with_impact_bhm,
+    damages_ada = gdp_pc - gdp_with_impact_ada,
+    dam_frac_bhm = (gdp_pc - gdp_with_impact_bhm)/gdp_pc,
+    dam_frac_ada = (gdp_pc - gdp_with_impact_ada)/gdp_pc
+  )
+
+# ggplot(mip_income_reg %>% filter(Scenario == "REF"),
+#        aes(x = Year, y = dam_frac_bhm, color = Model)) +
+#   geom_line() +
+#   facet_wrap(~ Region, ncol = 5) +
+#   theme_bw()
+# 
+# ggplot(mip_income_reg %>% filter(Scenario == "REF"),
+#        aes(x = Year, y = dam_frac_ada, color = Model)) +
+#   geom_line() +
+#   facet_wrap(~ Region, ncol = 5) +
+#   theme_bw()
 
 #### Compute damages: decile-level ####
 
@@ -272,6 +327,9 @@ mip_income_d <- mip_income_d %>%
   mutate(
     dist_growth_counter = Decile_income/lag(Decile_income, n=1) - 1
   )
+
+# set growth in initial period to 0
+mip_income_d$dist_growth_counter[is.na(mip_income_d$dist_growth_counter)] <- 0
 
 
 # Compute impacts on deciles with growth effect
@@ -310,15 +368,33 @@ for(j in 1:10) {
 }
 
 # Compute impacted decile income for every period
-for (i in 2:time_length) {
+
+### Separately for models that go until 2050 and the others (until 2100)
+mip_income_d2050 <- mip_income_d %>% 
+  filter(Model == "AIM" | Model == "E3ME")
+
+mip_income_d <- mip_income_d %>% 
+  filter(Model != "AIM" & Model != "E3ME")
+
+### For models until 2100
+
+for (i in 2:17) {
   for (j in 1:10) {
     mip_income_d$Dec_with_impact_bhm[mip_income_d$t==i & mip_income_d$dist_num==j] = (1 + mip_income_d$dist_growth_counter[mip_income_d$t==i & mip_income_d$dist_num==j] +
                                                                                         mip_income_d$d_dist_bhm[mip_income_d$t==i & mip_income_d$dist_num==j])*mip_income_d$Dec_with_impact_bhm[mip_income_d$t==i-1 & mip_income_d$dist_num==j]
   }
 }
 
+### For models until 2050
+for (i in 2:7) {
+  for (j in 1:10) {
+    mip_income_d2050$Dec_with_impact_bhm[mip_income_d2050$t==i & mip_income_d2050$dist_num==j] = (1 + mip_income_d2050$dist_growth_counter[mip_income_d2050$t==i & mip_income_d2050$dist_num==j] +
+                                                                                                    mip_income_d2050$d_dist_bhm[mip_income_d2050$t==i & mip_income_d2050$dist_num==j])*mip_income_d2050$Dec_with_impact_bhm[mip_income_d2050$t==i-1 & mip_income_d2050$dist_num==j]
+  }
+}
+
 # Compute damages, absolute and relative
-mip_income_d <- mip_income_d %>% 
+mip_income_d <- rbind(mip_income_d, mip_income_d2050) %>% 
   group_by(Scenario, Model, Region, Decile) %>% 
   mutate(
     damages_dist_bhm = Decile_income - Dec_with_impact_bhm,
@@ -342,6 +418,18 @@ mip_income_d <- mip_income_d %>%
     delta_gini_bhm = gini_impact_bhm - gini_counter
   )
 
+# ggplot(mip_income_d %>% filter(Scenario == "REF"),
+#        aes(x = Year, y = Reg_damages_bhm_frac, color = Model)) +
+#   geom_line() +
+#   facet_wrap(~ Region, ncol = 5) +
+#   theme_bw()
+# 
+# 
+# ggplot(mip_income_d %>% filter(Scenario == "REF"),
+#        aes(x = Year, y = delta_gini_bhm, color = Model)) +
+#   geom_line() +
+#   facet_wrap(~ Region, ncol = 5) +
+#   theme_bw()
 
 ##### Adaptation specification
 
@@ -357,6 +445,31 @@ for(j in 1:10) {
 }
 
 # Compute impacted decile income for every period, with d factor inside loop
+
+### Separately for models that go until 2050 and the others (until 2100)
+mip_income_d2050 <- mip_income_d %>% 
+  filter(Model == "AIM" | Model == "E3ME")
+
+for (i in 2:time_length) {
+  for (j in 1:10) {
+    mip_income_d2050$Dec_with_impact_ada[mip_income_d2050$t==i & mip_income_d2050$dist_num==j] =
+      (1 + 
+         # counterfactual growth rate
+         mip_income_d2050$dist_growth_counter[mip_income_d2050$t==i & mip_income_d2050$dist_num==j] +
+         # damage factor
+         (mip_income_d2050$temp_regional[mip_income_d2050$t==i & mip_income_d2050$dist_num==j] - mip_income_d2050$temp_start[mip_income_d2050$t==i & mip_income_d2050$dist_num==j])*
+         (coefs_ada[j,2] + coefs_ada[j,4]*log(mip_income_d2050$gdp_with_impact_ada[mip_income_d2050$t==i-1 & mip_income_d2050$dist_num==j])) +
+         (mip_income_d2050$temp_regional[mip_income_d2050$t==i & mip_income_d2050$dist_num==j]^2 - mip_income_d2050$temp_start[mip_income_d2050$t==i & mip_income_d2050$dist_num==j]^2)*
+         (coefs_ada[j,3] + coefs_ada[j,5]*log(mip_income_d2050$gdp_with_impact_ada[mip_income_d2050$t==i-1 & mip_income_d2050$dist_num==j]))
+      )*
+      mip_income_d2050$Dec_with_impact_ada[mip_income_d2050$t==i-1 & mip_income_d2050$dist_num==j]
+  }
+}
+
+
+mip_income_d <- mip_income_d %>% 
+  filter(Model != "AIM" & Model != "E3ME")
+
 for (i in 2:time_length) {
   for (j in 1:10) {
     mip_income_d$Dec_with_impact_ada[mip_income_d$t==i & mip_income_d$dist_num==j] =
@@ -365,18 +478,16 @@ for (i in 2:time_length) {
          mip_income_d$dist_growth_counter[mip_income_d$t==i & mip_income_d$dist_num==j] +
          # damage factor
          (mip_income_d$temp_regional[mip_income_d$t==i & mip_income_d$dist_num==j] - mip_income_d$temp_start[mip_income_d$t==i & mip_income_d$dist_num==j])*
-         (coefs_ada[j,2] + coefs_ada[j,4]*rollapply(log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]),
-                                                    5,  mean_rm, na.pad = T, align = "left")) +
+         (coefs_ada[j,2] + coefs_ada[j,4]*log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j])) +
          (mip_income_d$temp_regional[mip_income_d$t==i & mip_income_d$dist_num==j]^2 - mip_income_d$temp_start[mip_income_d$t==i & mip_income_d$dist_num==j]^2)*
-         (coefs_ada[j,3] + coefs_ada[j,5]*rollapply(log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]),
-                                                    5,  mean_rm, na.pad = T, align = "left"))
+         (coefs_ada[j,3] + coefs_ada[j,5]*log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]))
       )*
       mip_income_d$Dec_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]
   }
 }
 
 # Compute damages, absolute and relative
-mip_income_d <- mip_income_d %>% 
+mip_income_d <- rbind(mip_income_d, mip_income_d2050) %>% 
   group_by(Scenario, Model, Region, Decile) %>% 
   mutate(
     damages_dist_ada = Decile_income - Dec_with_impact_ada,
@@ -400,7 +511,18 @@ mip_income_d <- mip_income_d %>%
     delta_gini_ada = gini_impact_ada - gini_counter
   )
 
-
+# ggplot(mip_income_d %>% filter(Scenario == "REF"),
+#        aes(x = Year, y = Reg_damages_ada_frac, color = Model)) +
+#   geom_line() +
+#   facet_wrap(~ Region, ncol = 5) +
+#   theme_bw()
+# 
+# 
+# ggplot(mip_income_d %>% filter(Scenario == "REF"),
+#        aes(x = Year, y = delta_gini_ada, color = Model)) +
+#   geom_line() +
+#   facet_wrap(~ Region, ncol = 5) +
+#   theme_bw()
 #### Create dataframe with post-processed impacts, for all models and scenarios ####
 
 ### 2 Variables to add to mip_data, per spec = 4 total 

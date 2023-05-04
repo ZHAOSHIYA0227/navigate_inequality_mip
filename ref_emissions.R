@@ -18,7 +18,7 @@ library(ggpubr)
 df_imaclim <- mip_data %>%
   filter(Model == "Imaclim") %>% 
   filter(Variable == "Emissions|CO2") %>% 
-  filter(Region == "WLD") %>% 
+  # filter(Region == "WLD") %>% 
   pivot_wider(names_from = "Variable", 
               values_from = "value") %>% 
   group_by(Scenario, Model, Year) %>% 
@@ -29,7 +29,7 @@ df_imaclim <- mip_data %>%
 df_geme3 <- mip_data %>%
   filter(Model == "GEM-E3") %>% 
   filter(Variable == "Emissions|CO2") %>% 
-  filter(Region == "WORLD") %>% 
+  # filter(Region == "WORLD") %>%
   pivot_wider(names_from = "Variable", 
               values_from = "value") %>% 
   group_by(Scenario, Model, Year) %>% 
@@ -40,7 +40,7 @@ df_geme3 <- mip_data %>%
 df_nice <- mip_data %>%
   filter(Model == "NICE") %>% 
   filter(Variable == "Emissions|CO2") %>% 
-  filter(Region == "WORLD") %>% 
+  # filter(Region == "WORLD") %>% 
   pivot_wider(names_from = "Variable", 
               values_from = "value") %>% 
   group_by(Scenario, Model, Year) %>% 
@@ -93,7 +93,7 @@ df_rice <- mip_data %>%
 df_witch <- mip_data %>%
   filter(Model == "WITCH") %>% 
   filter(Variable == "Emissions|CO2") %>%
-  filter(Region == "world") %>% 
+  # filter(Region == "world") %>% 
   pivot_wider(names_from = "Variable", 
               values_from = "value") %>% 
   group_by(Scenario, Model, Year) %>% 

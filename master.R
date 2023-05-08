@@ -61,7 +61,7 @@ iiasadb_data <- rbind(iiasadb_data, upload2iiasa("RICE50x_v2.xlsx"))
 #NICE
 iiasadb_data <- rbind(iiasadb_data, rbind(upload2iiasa("NICE_WP4_sent_191222.xlsx"), upload2iiasa("NICE_WP4_sent_191222.xlsx") %>% filter(Variable=="Emissions|CO2|Energy and Industrial Processes" & Region!="WORLD") %>% mutate(Variable="Emissions|CO2")) )
 #IMACLIM
-iiasadb_data <- rbind(iiasadb_data, upload2iiasa("IMACLIM_WP4_sent_201222.xlsx"))
+iiasadb_data <- rbind(iiasadb_data, upload2iiasa("WP4_IMACLIM_sent_080523.xlsx"))
 
 #Ad E3ME from v2 protocol
 iiasadb_data <- rbind(iiasadb_data, rbind(upload2iiasa("E3ME-FTT data for NAVIGATE Task 4.2_V5.xlsx"), upload2iiasa("E3ME-FTT data for NAVIGATE Task 4.2_V5.xlsx") %>% filter(Variable=="Emissions|CO2|Energy and Industrial Processes") %>% mutate(Variable="Emissions|CO2")) %>% mutate(Variable=gsub("MER", "PPP", Variable))) # use MER as PPP

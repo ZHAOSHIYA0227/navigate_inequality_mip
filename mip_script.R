@@ -14,6 +14,18 @@ load(here("inequality_mip_full.Rdata"))
 }
 
 
+graphdir <- paste0("graphs_", measure_inequality)
+#use the function saveplot to save the graphs in the relative folders 
+figure_format <- "png"
+convert_pdftopng <- F #converts all created pdfs to png for better quality (needs pdftopng.exe in your PATH. Download from http://www.xpdfreader.com/download.html)
+saveplot <- function(plotname, text_size=12, width=12, height=8, plot_title = T, plot_theme=theme_bw()){
+  if(!dir.exists(file.path(graphdir))){dir.create(file.path(graphdir))}
+  print(last_plot() + plot_theme)
+  ggsave(filename=file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", figure_format)), plot = if(plot_title){last_plot()}else{last_plot()} + theme(text = element_text(size=text_size)), width=width, height=height)
+  if(figure_format=="pdf" & convert_pdftopng) shell(str_glue('pdftopng.exe {file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", figure_format))} - > {file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", "png"))}'))
+}
+
+
 theme_set(theme_minimal(base_size = 12))
 
 mip_data <- iiasadb_data
@@ -231,11 +243,11 @@ mip_income_reg <- mip_income_reg %>%
 
 # Separate models that go until 2050 from the others (until 2100)
 mip_income_2050 <- mip_income_reg %>% 
-  filter(Model == "AIM" | Model == "E3ME")
+  filter(Model == "E3ME")
 
 
 mip_income_reg <- mip_income_reg %>% 
-  filter(Model != "AIM" & Model != "E3ME")
+  filter(Model != "E3ME")
 
 
 # Loops for growth effect on regional GDP
@@ -371,10 +383,10 @@ for(j in 1:10) {
 
 ### Separately for models that go until 2050 and the others (until 2100)
 mip_income_d2050 <- mip_income_d %>% 
-  filter(Model == "AIM" | Model == "E3ME")
+  filter(Model == "E3ME")
 
 mip_income_d <- mip_income_d %>% 
-  filter(Model != "AIM" & Model != "E3ME")
+  filter(Model != "E3ME")
 
 ### For models until 2100
 
@@ -448,7 +460,7 @@ for(j in 1:10) {
 
 ### Separately for models that go until 2050 and the others (until 2100)
 mip_income_d2050 <- mip_income_d %>% 
-  filter(Model == "AIM" | Model == "E3ME")
+  filter(Model == "E3ME")
 
 for (i in 2:time_length) {
   for (j in 1:10) {
@@ -468,7 +480,7 @@ for (i in 2:time_length) {
 
 
 mip_income_d <- mip_income_d %>% 
-  filter(Model != "AIM" & Model != "E3ME")
+  filter(Model != "E3ME")
 
 for (i in 2:time_length) {
   for (j in 1:10) {

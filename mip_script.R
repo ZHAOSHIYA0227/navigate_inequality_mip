@@ -265,7 +265,45 @@ p.dec.g.ii <- ggplot(
   labs("Pooled income deciles")
 p.dec.g.ii
 
-
+save_ggplot = function(p,f,h=150,w=150,format="png-pdf"){
+  if(format=="png-pdf"){
+    ggsave(
+      plot = p,
+      file = paste0(f,".png"), 
+      height = h,
+      width = w,
+      unit = "mm"
+    ) 
+    ggsave(
+      plot = p,
+      file = paste0(f,".pdf"), device = grDevices::cairo_pdf,
+      height = h,
+      width = w,
+      unit = "mm"
+    )
+  } else if (format=="png") {
+    ggsave(
+      plot = p,
+      file = paste0(f,".png"), 
+      height = h,
+      width = w,
+      unit = "mm"
+    ) 
+  } else if (format=="pdf") {
+    ggsave(
+      plot = p,
+      file = paste0(f,".pdf"), device = grDevices::cario_pdf,
+      height = h,
+      width = w,
+      unit = "mm"
+    )
+  }
+}
+save_ggplot(
+  p=p.dec.g.ii,
+  f="globally_pooled_d_cons_relchange",
+  w=200,h=200
+)
 
 #### Compute income elasticity of policy impacts ####
 

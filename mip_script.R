@@ -169,9 +169,13 @@ mutate_cond <- function(.data, condition, ..., envir = parent.frame()) {
 
 
 dec.g <- mip_income_d_pop %>% left_join(mip_income_d_pop_global) %>% ungroup() %>% 
-  #' TODO // issues to fix:
+  #' TODO // issues to fix or check:
   #' - [ ] WITCH India: population missing
   #' - [ ] WITCH Canada: decile income missing
+  #' - [ ] E3ME only France
+  #' - [ ] REMIND super high 2100 relative impact of redist and mitigation on D1-4
+  #' - [ ] RICE super high 2030 relative impact of redist and mitigation on D1
+  #' - [ ] RICE 2050 showing mitigation+redist is worse than REF (both with impacts)
   #' 
   #' 
   filter(Model!="WITCH") %>%
@@ -213,7 +217,10 @@ p.dec.g.i <- ggplot(
 p.dec.g.i
 
 # take stats on two scenarios, percentage difference
-dec.g.diff.st <- dec.g %>% 
+dec.g.diff.st <- 
+  
+  # 650
+  dec.g %>% #pull(Scenario) %>% unique() 
   select(-Scenario_type) %>% 
   filter(Scenario == "REF" | Scenario == "650") %>% 
   distinct(Year,Model,Region,Decile,pop,Scenario,Decile_global,Decile_income) %>% # drops 306 rows of 12920 rows? (decile)
@@ -223,7 +230,34 @@ dec.g.diff.st <- dec.g %>%
   mutate(value= (`650`-`REF`) / `REF`) %>% 
   mutate(Scenario="(650 - REF)/REF") %>% 
   
-  # simple percentiles, by occurence. T
+  # stronger mitigation effect (with impact and with redist)
+  bind_rows(
+    dec.g %>% 
+      select(-Scenario_type) %>% 
+      filter(Scenario == "1150_impact_redist" | Scenario == "650_impact_redist") %>% 
+      distinct(Year,Model,Region,Decile,pop,Scenario,Decile_global,Decile_income) %>% # drops 306 rows of 12920 rows? (decile)
+      
+      pivot_wider(names_from = Scenario, values_from = `Decile_income`) %>% 
+      
+      mutate(value= (`650_impact_redist`-`1150_impact_redist`) / `1150_impact_redist`) %>% 
+      mutate(Scenario="(650_impact_redist - 1150_impact_redist)/1150_impact_redist")
+  ) %>% 
+  
+  
+  # # mitigation+redistribution: 650_impact_redist
+  # bind_rows(
+  #   dec.g %>% 
+  #     select(-Scenario_type) %>% 
+  #     filter(Scenario == "REF_impact" | Scenario == "650_impact_redist") %>% 
+  #     distinct(Year,Model,Region,Decile,pop,Scenario,Decile_global,Decile_income) %>% # drops 306 rows of 12920 rows? (decile)
+  #     
+  #     pivot_wider(names_from = Scenario, values_from = `Decile_income`) %>% 
+  #     
+  #     mutate(value= (`650_impact_redist`-`REF_impact`) / `REF_impact`) %>% 
+  #     mutate(Scenario="(650_impact_redist - REF_impact)/REF_impact")
+  # ) %>% 
+  
+  # simple percentiles, by occurrence.
   #' TODO:
   #' - [ ] try weighted quantiles here ##https://search.r-project.org/CRAN/refmans/DescTools/html/Quantile.html
   
@@ -302,7 +336,7 @@ save_ggplot = function(p,f,h=150,w=150,format="png-pdf"){
 save_ggplot(
   p=p.dec.g.ii,
   f="globally_pooled_d_cons_relchange",
-  w=200,h=200
+  w=300,h=250
 )
 
 #### Compute income elasticity of policy impacts ####

@@ -125,7 +125,8 @@ saveplot("Scenario matrix")
 
 
 
-save(iiasadb_data, file = "inequality_mip_full.Rdata")
+# save(iiasadb_data, file = "inequality_mip_full.Rdata")
+saveRDS(iiasadb_data, file = "inequality_mip_full.Rdata")
 source("mip_script.R")
 
 

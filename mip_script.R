@@ -18,6 +18,7 @@ theme_set(theme_minimal(base_size = 12))
 
 mip_data <- iiasadb_data
 
+
 # Decile incomes data
 mip_income_d <- subset(mip_data, grepl(str_glue("{measure_inequality}\\|D"), mip_data$Variable)) %>% 
   pivot_wider(names_from = "Variable",
@@ -34,6 +35,7 @@ pop <- mip_data %>%
   pivot_wider(names_from = "Variable",
               values_from = "value")
 
+
 gdp_ppp <- mip_data %>% 
   filter(Variable == "GDP|PPP") %>% 
   pivot_wider(names_from = "Variable",
@@ -44,15 +46,16 @@ gdp_ppp <- mip_data %>%
     pop_total = Population*10^6, # convert from millions (like WB)
     gdp_pc = gdp_ppp_dollars/pop_total,
     lgdp_pc = log(gdp_ppp_dollars/pop_total) 
-  )
+  ) 
 
 
 # compute income levels by decile
 mip_income_d <- mip_income_d %>% 
+    mutate_at(vars(`Income|D1`:`Income|D9`), funs(map(., as.character) %>% map(as.numeric))) %>% 
+    unnest(`Income|D1`:`Income|D9`) %>% 
   full_join(gdp_ppp, by = c("Scenario", "Model", "Region", "Year")) %>% 
-    mutate_at(vars(`Income|D1`:`Income|D9`), funs(level = gdp_pc*./100))
+  mutate_at(vars(`Income|D1`:`Income|D9`), funs(level = gdp_pc*./100))
   
-
 source("read_coefs_downscaling.R")
 
 # Select only the 10 common regions
@@ -115,7 +118,7 @@ policy_df <- mip_income_d %>%
     country_y_ref = sum(REF, na.rm = T),
     REFrel = REF/country_y_ref
   ) %>% 
-  filter(Year >= 2020 & Year <= 2050)
+  filter(Year >= 2020 & Year <= 2050) 
 
 #visual
 ggplot(policy_df) + geom_point(aes(REF, (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent)
@@ -129,6 +132,28 @@ saveplot("Policy Impact by Decile")
 policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model - 1,
                         data = policy_df)
 
+############################################################################################
+## a missing level of E3ME in the model
+# policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model - 1,
+#                         data = policy_df %>% filter(Model == "E3ME"))
+# 
+# colnames(aa)
+# unique(aa$Variable)
+# colnames(mip_data)
+# unique(mip_data$Scenario)
+# unique(mip_data$Model)
+# 
+# aa <- subset(mip_data, grepl(str_glue("{measure_inequality}\\|D"), mip_data$Variable)) %>% 
+#   filter(Model == "NICE") %>% 
+#   pivot_wider(names_from = "Variable",
+#               values_from = "value") #%>% filter(Model == "E3ME")
+# 
+# bb <- aa %>% 
+#   filter(startsWith(Variable, "Income|")) %>% view
+#   pivot_longer()
+
+############################################################################################
+
 stargazer(policy_impact_reg,
           type = "latex",
           dep.var.labels = "Change in decile income, from policy",
@@ -140,6 +165,13 @@ stargazer(policy_impact_reg,
 
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("REFrel", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
+
+# colnames(policy_df)
+# unique(policy_df$Model)
+# summary(policy_impact_reg)
+
+# aa <- predict(object = policy_impact_reg, newdata = policy_df)
+
 reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata = policy_df)) %>% filter(!is.na(...10))
 table(reg_policy_obs$Model, reg_policy_obs$Region)
 

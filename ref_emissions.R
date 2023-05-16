@@ -8,7 +8,7 @@ library(ggpubr)
 # GEM_E3: "WORLD"
 # NICE: "WORLD"
 # REMIND: no world region, must aggregate macro-regions
-# AIM/PHI: same as above
+# AIM: same as above
 # E3ME: no world, only has energy & industry emissions
 # RICE50+: no world region, must aggregate macro-regions
 # WITCH: "world"
@@ -59,7 +59,7 @@ df_remind <- mip_data %>%
   )
 
 df_aim <- mip_data %>%
-  filter(Model == "AIM/PHI") %>% 
+  filter(Model == "AIM") %>% 
   filter(Variable == "Emissions|CO2") %>% 
   pivot_wider(names_from = "Variable", 
               values_from = "value") %>% 
@@ -68,15 +68,15 @@ df_aim <- mip_data %>%
     global_emissions = sum(`Emissions|CO2`)
   )
 
-df_e3me <- mip_data %>% 
-  filter(Model == "E3ME") %>% 
-  filter(Variable == "Emissions|CO2|Energy and Industrial Processes") %>% 
-  pivot_wider(names_from = "Variable", 
-              values_from = "value") %>% 
-  group_by(Scenario, Model, Year) %>% 
-  summarise(
-    global_emissions = sum(`Emissions|CO2|Energy and Industrial Processes`)
-  )
+# df_e3me <- mip_data %>% 
+#   filter(Model == "E3ME") %>% 
+#   filter(Variable == "Emissions|CO2|Energy and Industrial Processes") %>% 
+#   pivot_wider(names_from = "Variable", 
+#               values_from = "value") %>% 
+#   group_by(Scenario, Model, Year) %>% 
+#   summarise(
+#     global_emissions = sum(`Emissions|CO2|Energy and Industrial Processes`)
+#   )
 
 df_rice <- mip_data %>%
   filter(Model == "RICE50+") %>% 
@@ -99,7 +99,7 @@ df_witch <- mip_data %>%
     global_emissions = sum(`Emissions|CO2`)
   )
 
-ref_emissions <- rbind(df_aim, df_e3me, df_geme3, df_imaclim, df_nice, df_remind, df_rice, df_witch)
+ref_emissions <- rbind(df_aim, df_geme3, df_imaclim, df_nice, df_remind, df_rice, df_witch) # df_e3me,
 
 rm(list=ls(pattern="^df_"))
 
@@ -124,9 +124,9 @@ ref_emissions <- ref_emissions %>%
 cum_global_emissions = cumsum(for_cum_5)) %>% 
   select(-for_cum, -for_cum_5)
 
-# Stop AIM/PHI and E3ME cumulative emissions in 2050
-ref_emissions$cum_global_emissions[ref_emissions$Model=="AIM/PHI" & ref_emissions$Year > 2050] <- NA
-ref_emissions$cum_global_emissions[ref_emissions$Model=="E3ME" & ref_emissions$Year > 2050] <- NA
+# Stop AIM and E3ME cumulative emissions in 2050
+# ref_emissions$cum_global_emissions[ref_emissions$Model=="AIM" & ref_emissions$Year > 2050] <- NA
+# ref_emissions$cum_global_emissions[ref_emissions$Model=="E3ME" & ref_emissions$Year > 2050] <- NA
 
 
 ## Create scenario type for better plots

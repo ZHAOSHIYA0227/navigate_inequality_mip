@@ -350,11 +350,12 @@ policy_df <- mip_income_d %>%
     values_from = Decile_income
   ) %>% 
   mutate(
-    delta_income_policy = (`650` - REF)/REF
+    delta_income_policy = `650` - REF, # choose whether relative or absolute
+    delta_income_pol_rel = (`650` - REF)/REF
   ) %>% 
   group_by(Model, Region, Year) %>% 
   mutate(
-    country_y_ref = sum(REF, na.rm = T),
+    country_y_ref = mean(REF, na.rm = T),
     REFrel = REF/country_y_ref
   ) %>% 
   filter(Year >= 2020 & Year <= 2050)
@@ -368,8 +369,11 @@ saveplot("Policy Impact by Decile")
 
 
 # Regressing difference in decile-level income due to policy on income levels under REF
-policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model -1,
-                        data = policy_df)
+policy_impact_reg <- lm(log(delta_income_policy) ~ log(REF) + Model + Region +
+                          factor(Year) -1,
+                        data = policy_df %>% 
+                          filter(delta_income_policy < 0) %>% 
+                          mutate(delta_income_policy = -1*delta_income_policy))
 
 stargazer(policy_impact_reg,
           type = "latex",

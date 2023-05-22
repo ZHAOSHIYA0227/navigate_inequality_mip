@@ -389,6 +389,75 @@ hutils::replace_pattern_in("REFrel", "Deciles under Reference scenario", file_pa
 # reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata = policy_df)) %>% filter(!is.na(...10))
 # table(reg_policy_obs$Model, reg_policy_obs$Region)
 
+
+### Plot policy impact elasticity across regions
+
+# function to compute policy elasticity in each region
+policy_elast = function(r) {
+  
+  df_tmp <- policy_df %>% 
+    filter(Region == r)
+  
+  if(r == "Canada") {
+    
+    df_tmp <- df_tmp %>% filter(Model != "WITCH")
+    
+    reg_tmp <- lm(log(delta_income_policy) ~ log(REF) +
+                    factor(Year) -1,
+                  data = df_tmp %>% 
+                    filter(delta_income_policy < 0) %>% 
+                    mutate(delta_income_policy = -1*delta_income_policy))
+    
+  }
+  
+  else {
+    
+    reg_tmp <- lm(log(delta_income_policy) ~ log(REF) + Model +
+                    factor(Year) -1,
+                  data = df_tmp %>% 
+                    filter(delta_income_policy < 0) %>% 
+                    mutate(delta_income_policy = -1*delta_income_policy))
+    
+    df_tmp$policy_elast <- coefficients(reg_tmp)[1]
+    
+  }
+  
+  return(df_tmp)
+}
+
+policy_elast_df_plot <- list()
+
+policy_elast_df_plot <- lapply(unique(policy_df$Region), policy_elast) %>% 
+  bind_rows()
+
+# merge with 2020 GDP per capita, in PPP $
+gdp_pc <- mip_income_d %>% 
+  filter(Year == 2020) %>% 
+  select(Region, gdp_pc) %>% 
+  group_by(Region) %>% 
+  slice_head(n = 1) %>% 
+  select(Region, gdp_pc)
+
+
+library(ggrepel)
+
+ggplot(policy_elast_df_plot %>% 
+         full_join(gdp_pc, by = "Region") %>% 
+         group_by(Region) %>% 
+         slice_head(n = 1),
+       aes(x = gdp_pc, y = policy_elast, color = Region, label = Region)) +
+  geom_point()   + # Show dots
+  geom_label_repel(box.padding   = 0.35, 
+                   point.padding = 0.5,
+                   segment.color = 'grey50') +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  guides(label = "none") +
+  labs(x = "GDP per capita, 2020$ PPP",
+       y = "Elasticity") 
+
+saveplot("Policy Elasticity by Country Income")
+
+
 #### Compute damages: region-level ####
 
 

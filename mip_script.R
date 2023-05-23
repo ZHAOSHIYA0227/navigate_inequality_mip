@@ -384,8 +384,9 @@ stargazer(policy_impact_reg,
           single.row = T,
           out = paste0(graphdir, "/policy_impact_elast.tex"))
 
+hutils::replace_pattern_in("log(REF)", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
-hutils::replace_pattern_in("REFrel", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
+hutils::replace_pattern_in("factor(Year)","", file_pattern="*.tex", basedir = graphdir)
 # reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata = policy_df)) %>% filter(!is.na(...10))
 # table(reg_policy_obs$Model, reg_policy_obs$Region)
 
@@ -408,7 +409,7 @@ policy_elast = function(r) {
                     filter(delta_income_policy < 0) %>% 
                     mutate(delta_income_policy = -1*delta_income_policy))
     
-  }
+    }
   
   else {
     
@@ -421,6 +422,20 @@ policy_elast = function(r) {
     df_tmp$policy_elast <- coefficients(reg_tmp)[1]
     
   }
+  
+  stargazer(reg_tmp,
+            type = "latex",
+            dep.var.labels = "Change in decile income, from policy",
+            model.names = FALSE,
+            header=F,
+            float=T,
+            single.row = T,
+            out = paste0(graphdir, "/", r, "_", "policy_impact_elast.tex"))
+  
+  hutils::replace_pattern_in("log(REF)", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
+  hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
+  hutils::replace_pattern_in("factor(Year)","", file_pattern="*.tex", basedir = graphdir)
+  
   
   return(df_tmp)
 }
@@ -451,6 +466,7 @@ ggplot(policy_elast_df_plot %>%
                    point.padding = 0.5,
                    segment.color = 'grey50') +
   geom_hline(yintercept = 1, linetype = "dashed") +
+  # coord_cartesian(ylim = c(0.75, 1.25)) +
   guides(label = "none") +
   labs(x = "GDP per capita, 2020$ PPP",
        y = "Elasticity") 

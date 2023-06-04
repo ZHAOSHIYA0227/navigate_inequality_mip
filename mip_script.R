@@ -86,7 +86,7 @@ mip_income_d <- mip_income_d %>% select(Scenario:Year) %>% cbind(decile_cols)
 # compute income levels by decile
 mip_income_d <- mip_income_d %>% 
   full_join(gdp_ppp, by = c("Scenario", "Model", "Region", "Year")) %>% 
-    mutate_at(vars(`Income|D1`:`Income|D9`), funs(level = gdp_pc*./100))
+    mutate_at(vars(`Income|D1`:`Income|D9`), funs(level = gdp_pc*./10))
   
 # install.packages("arrow")
 library("arrow")
@@ -362,6 +362,10 @@ policy_df <- mip_income_d %>%
 
 #visual
 ggplot(policy_df) + geom_point(aes(REF, (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent)
+
+#Johannes: show elasticities
+ggplot(policy_df) + geom_point(aes(REF/country_y_ref-1, (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + scale_x_continuous(labels = scales::percent)
+
 #by decile
 ggplot(policy_df) + geom_point(aes(as.numeric(gsub("D","",Decile)), (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + labs(x="Decile", y="Relative change from REF to 650") + scale_x_continuous(labels = seq(1,10), breaks=seq(1,10))
 saveplot("Policy Impact by Decile")

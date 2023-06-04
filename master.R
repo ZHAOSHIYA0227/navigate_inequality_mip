@@ -53,7 +53,7 @@ upload2iiasa <- function(filename){
 #REMIND
 iiasadb_data <- upload2iiasa("REMIND_WP4_ICMP.xlsx")
 #manually combine Energy plus Insutrial Processes
-iiasadb_data <- rbind(iiasadb_data, upload2iiasa("REMIND_WP4_ICMP.xlsx") %>% filter(Variable=="Emissions|CO2|Energy"|Variable=="Emissions|CO2|Industrial Processes") %>% mutate(Variable="Emissions|CO2|Energy and Industrial Processes") %>% group_by(Scenario,Variable,Model,Region,Unit,Year) %>% summarise(value=sum(value)))
+iiasadb_data <- rbind(iiasadb_data, upload2iiasa("REMIND_WP4_ICMP_May2023.xlsx") %>% filter(Variable=="Emissions|CO2|Energy"|Variable=="Emissions|CO2|Industrial Processes") %>% mutate(Variable="Emissions|CO2|Energy and Industrial Processes") %>% group_by(Scenario,Variable,Model,Region,Unit,Year) %>% summarise(value=sum(value)))
 #WITCH
 iiasadb_data <- rbind(iiasadb_data, upload2iiasa("WITCH-WP4-v5.xlsx") %>% mutate(Region=tolower(Region), Region=gsub("india", "India", Region)))
 #RICE
@@ -376,16 +376,22 @@ ggplot(data_welfare_effect %>% filter(Region %in% countries_reported_max) %>% fi
 
 
 
+ggplot(data_welfare_effect_mod_mean %>% filter(Year >=2025 & Year <=2100 & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("650", "650_redist", "650_impact_redist")) %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy"))) + geom_line(aes(x = Year, y = `MEAN_relchange_GDP|PPP`, color=scenarioclass), size = 1) + facet_wrap(Region ~ ., scales = "fixed", nrow=3) + geom_hline(yintercept = 0) + theme_minimal() + scale_y_continuous(labels=scales::percent) 
+saveplot("Change only GDP")
+ggplot(data_welfare_effect_mod_mean %>% filter(Year >=2025 & Year <=2100 & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("650", "650_redist", "650_impact_redist")) %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy"))) + geom_line(aes(x = Year, y = MEAN_abschange_Gini, color=scenarioclass), size = 1) + facet_wrap(Region ~ ., scales = "fixed", nrow=3) + geom_hline(yintercept = 0) + theme_minimal() + scale_y_continuous(labels=scales::percent) 
+saveplot("Change only Gini")
+ggplot(data_welfare_effect_mod_mean %>% filter(Year >=2025 & Year <=2100 & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("650", "650_redist", "650_impact_redist")) %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy")) %>% pivot_longer(cols = 5:10, names_to = "variable") %>% filter(variable %in% c("MEAN_abschange_Gini", "MEAN_relchange_GDP|PPP"))) + geom_line(aes(x = Year, y = value, color=scenarioclass), size = 1) + facet_grid(Region ~ variable) + geom_hline(yintercept = 0) + theme_minimal() + scale_y_continuous(labels=scales::percent) + theme(legend.position = "bottom")
+saveplot("Change GDP and Gini")
+#for all models
+ggplot(data_welfare_effect %>% filter(Year >=2025 & Year <=2100 & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("650", "650_redist", "650_impact_redist")) %>% mutate(scenarioclass=case_when(str_detect(Scenario.y, "impact") ~ "EPC with avoided Impacts", str_detect(Scenario.y, "redist$") ~ "EPC redistribution", TRUE ~ "Climate Policy")) %>% mutate(MEAN_abschange_Gini=-(value.y_Equality_index-value.x_Equality_index),  `MEAN_relchange_GDP|PPP` = `relchange_GDP|PPP`) %>% pivot_longer(cols = 14:15, names_to = "variable") %>% filter(variable %in% c("MEAN_abschange_Gini", "MEAN_relchange_GDP|PPP"))) + geom_line(aes(x = Year, y = value, color=scenarioclass, group=interaction(scenarioclass, Model)), size = 1) + facet_grid(Region ~ variable) + geom_hline(yintercept = 0) + theme_minimal() + scale_y_continuous(labels=scales::percent) + theme(legend.position = "bottom") + ylim(-swfrange,+swfrange)
 
 
 
 
 
-
-
-
-
-
+#is modmoean correct?
+#writexl::write_xlsx(data_welfare_effect %>% filter(Region=="India" & Year==2050 & Scenario.y=="650" & Scenario.x == "REF") %>% as.data.frame(), path = "test_india2.xlsx")
+#writexl::write_xlsx(data_welfare_effect_mod_mean %>% filter(Region=="India" & Year==2050 & Scenario.y=="650" & Scenario.x == "REF") %>% as.data.frame(), path = "test_india.xlsx")
 
 
 

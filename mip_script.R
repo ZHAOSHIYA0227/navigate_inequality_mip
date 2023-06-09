@@ -88,7 +88,6 @@ mip_income_d <- mip_income_d %>%
   full_join(gdp_ppp, by = c("Scenario", "Model", "Region", "Year")) %>% 
     mutate_at(vars(`Income|D1`:`Income|D9`), funs(level = gdp_pc*./10))
   
-# install.packages("arrow")
 library("arrow")
 source("read_coefs_downscaling.R")
 
@@ -134,6 +133,8 @@ mip_income_d <- mip_income_d %>%
   ) %>% 
   filter(Year >= 2020)
 
+
+########## IDEA FROM JS IIASA MEETING ########################
 # plot idea, as historgram type plot
 mip_income_d_pop <- mip_income_d %>% left_join(
   iiasadb_data %>% filter(Variable=="Population") %>% rename(original=Region) %>% 
@@ -166,7 +167,6 @@ mutate_cond <- function(.data, condition, ..., envir = parent.frame()) {
   .data[condition, ] <- .data[condition, ] %>% mutate(...)
   .data
 }
-
 
 dec.g <- mip_income_d_pop %>% left_join(mip_income_d_pop_global) %>% ungroup() %>% 
   #' TODO // issues to fix or check:
@@ -244,19 +244,6 @@ dec.g.diff.st <-
   ) %>% 
   
   
-  # # mitigation+redistribution: 650_impact_redist
-  # bind_rows(
-  #   dec.g %>% 
-  #     select(-Scenario_type) %>% 
-  #     filter(Scenario == "REF_impact" | Scenario == "650_impact_redist") %>% 
-  #     distinct(Year,Model,Region,Decile,pop,Scenario,Decile_global,Decile_income) %>% # drops 306 rows of 12920 rows? (decile)
-  #     
-  #     pivot_wider(names_from = Scenario, values_from = `Decile_income`) %>% 
-  #     
-  #     mutate(value= (`650_impact_redist`-`REF_impact`) / `REF_impact`) %>% 
-  #     mutate(Scenario="(650_impact_redist - REF_impact)/REF_impact")
-  # ) %>% 
-  
   # simple percentiles, by occurrence.
   #' TODO:
   #' - [ ] try weighted quantiles here ##https://search.r-project.org/CRAN/refmans/DescTools/html/Quantile.html
@@ -298,46 +285,9 @@ p.dec.g.ii <- ggplot(
   xlab("Decile") +
   labs("Pooled income deciles")
 p.dec.g.ii
+saveplot("globally_pooled_d_cons_relchange")
 
-save_ggplot = function(p,f,h=150,w=150,format="png-pdf"){
-  if(format=="png-pdf"){
-    ggsave(
-      plot = p,
-      file = paste0(f,".png"), 
-      height = h,
-      width = w,
-      unit = "mm"
-    ) 
-    ggsave(
-      plot = p,
-      file = paste0(f,".pdf"), device = grDevices::cairo_pdf,
-      height = h,
-      width = w,
-      unit = "mm"
-    )
-  } else if (format=="png") {
-    ggsave(
-      plot = p,
-      file = paste0(f,".png"), 
-      height = h,
-      width = w,
-      unit = "mm"
-    ) 
-  } else if (format=="pdf") {
-    ggsave(
-      plot = p,
-      file = paste0(f,".pdf"), device = grDevices::cario_pdf,
-      height = h,
-      width = w,
-      unit = "mm"
-    )
-  }
-}
-save_ggplot(
-  p=p.dec.g.ii,
-  f="globally_pooled_d_cons_relchange",
-  w=300,h=250
-)
+##### END JS suggestion decile plot
 
 #### Compute income elasticity of policy impacts ####
 

@@ -136,7 +136,7 @@ mip_income_d <- mip_income_d %>%
 
 # plot idea, as historgram type plot
 mip_income_d_pop <- mip_income_d %>% left_join(
-  readRDS("inequality_mip_full.Rdata") %>% filter(Variable=="Population") %>% rename(original=Region) %>% 
+  iiasadb_data %>% filter(Variable=="Population") %>% rename(original=Region) %>% 
     left_join(country_naming) %>% drop_na() %>% 
     rename(Region=new,
            pop=value)
@@ -361,13 +361,19 @@ policy_df <- mip_income_d %>%
   filter(Year >= 2020 & Year <= 2050)
 
 #visual
-ggplot(policy_df) + geom_point(aes(REF, (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent)
+mod_letters <- c("A", "E", "G", "I", "N", "r", "R", "W")
+
+mod_letters_utf <- unlist(lapply(mod_letters, utf8ToInt))
+
+
+ggplot(policy_df) + geom_point(aes(REF, (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + scale_shape_manual(name = "Model", values = mod_letters_utf) 
+
 
 #Johannes: show elasticities
-ggplot(policy_df) + geom_point(aes(REF/country_y_ref-1, (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + scale_x_continuous(labels = scales::percent)
+ggplot(policy_df) + geom_point(aes(REF/country_y_ref-1, (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + scale_x_continuous(labels = scales::percent) + scale_shape_manual(name = "Model", values = mod_letters_utf)
 
 #by decile
-ggplot(policy_df) + geom_point(aes(as.numeric(gsub("D","",Decile)), (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + labs(x="Decile", y="Relative change from REF to 650") + scale_x_continuous(labels = seq(1,10), breaks=seq(1,10))
+ggplot(policy_df) + geom_point(aes(as.numeric(gsub("D","",Decile)), (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + labs(x="Decile", y="Relative change from REF to 650") + scale_x_continuous(labels = seq(1,10), breaks=seq(1,10)) + scale_shape_manual(name = "Model", values = mod_letters_utf)
 saveplot("Policy Impact by Decile")
 
 
@@ -470,7 +476,7 @@ ggplot(policy_elast_df_plot %>%
                    point.padding = 0.5,
                    segment.color = 'grey50') +
   geom_hline(yintercept = 1, linetype = "dashed") +
-  # coord_cartesian(ylim = c(0.75, 1.25)) +
+  coord_cartesian(ylim = c(0.75, 1.05)) +
   guides(label = "none") +
   labs(x = "GDP per capita, 2020$ PPP",
        y = "Elasticity") 

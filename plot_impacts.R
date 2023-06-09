@@ -680,7 +680,7 @@ decile_plot_sel_years = function(spec, dir) {
          plot = p_dec_avoided_100,
          width = 15, height = 7, path = dir)
   
-  # return(list(p_dec_sel_100, p_dec_avoided_100))
+  return(list(p_dec_sel_100, p_dec_avoided_100))
   
 }
 

@@ -51,7 +51,7 @@ upload2iiasa <- function(filename){
 #manually convert upload files to iiasadb format
 
 #REMIND
-iiasadb_data <- upload2iiasa("REMIND_WP4_ICMP.xlsx")
+iiasadb_data <- upload2iiasa("REMIND_WP4_ICMP_June2023.xlsx")
 #manually combine Energy plus Insutrial Processes
 iiasadb_data <- rbind(iiasadb_data, upload2iiasa("REMIND_WP4_ICMP_May2023.xlsx") %>% filter(Variable=="Emissions|CO2|Energy"|Variable=="Emissions|CO2|Industrial Processes") %>% mutate(Variable="Emissions|CO2|Energy and Industrial Processes") %>% group_by(Scenario,Variable,Model,Region,Unit,Year) %>% summarise(value=sum(value)))
 #WITCH

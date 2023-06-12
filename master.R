@@ -53,7 +53,7 @@ upload2iiasa <- function(filename){
 #REMIND
 iiasadb_data <- upload2iiasa("REMIND_WP4_ICMP_June2023.xlsx")
 #manually combine Energy plus Insutrial Processes
-iiasadb_data <- rbind(iiasadb_data, upload2iiasa("REMIND_WP4_ICMP_May2023.xlsx") %>% filter(Variable=="Emissions|CO2|Energy"|Variable=="Emissions|CO2|Industrial Processes") %>% mutate(Variable="Emissions|CO2|Energy and Industrial Processes") %>% group_by(Scenario,Variable,Model,Region,Unit,Year) %>% summarise(value=sum(value)))
+iiasadb_data <- rbind(iiasadb_data, upload2iiasa("REMIND_WP4_ICMP_June2023.xlsx") %>% filter(Variable=="Emissions|CO2|Energy"|Variable=="Emissions|CO2|Industrial Processes") %>% mutate(Variable="Emissions|CO2|Energy and Industrial Processes") %>% group_by(Scenario,Variable,Model,Region,Unit,Year) %>% summarise(value=sum(value)))
 #WITCH
 iiasadb_data <- rbind(iiasadb_data, upload2iiasa("WITCH-WP4-v5.xlsx") %>% mutate(Region=tolower(Region), Region=gsub("india", "India", Region)))
 #RICE

@@ -10,7 +10,7 @@ library(stargazer)
 if(!exists("measure_inequality")){
 measure_inequality <- "Consumption"
 graphdir <- paste0("graphs_", measure_inequality)
-load(here("inequality_mip_full.Rdata"))
+mip_data <- readRDS(here("inequality_mip_full.Rdata"))
 }
 
 
@@ -28,7 +28,7 @@ saveplot <- function(plotname, text_size=12, width=12, height=8, plot_title = T,
 
 theme_set(theme_minimal(base_size = 12))
 
-mip_data <- iiasadb_data
+# mip_data <- iiasadb_data
 
 # Decile incomes data
 mip_income_d <- subset(mip_data, grepl(str_glue("{measure_inequality}\\|D"), mip_data$Variable)) %>% 
@@ -426,7 +426,7 @@ ggplot(policy_elast_df_plot %>%
                    point.padding = 0.5,
                    segment.color = 'grey50') +
   geom_hline(yintercept = 1, linetype = "dashed") +
-  coord_cartesian(ylim = c(0.75, 1.05)) +
+  # coord_cartesian(ylim = c(0.75, 1.05)) +
   guides(label = "none") +
   labs(x = "GDP per capita, 2020$ PPP",
        y = "Elasticity") 
@@ -623,9 +623,9 @@ mip_income_d$dist_num <- as.numeric(gsub(".*?([0-9]+).*", "\\1",
 # Compute damage factor on growth rates of decile income
 for(i in 1:10) {
   mip_income_d$d_dist_bhm[mip_income_d$dist_num == i] <-  (mip_income_d$temp_regional[mip_income_d$dist_num == i]
-                                                           - mip_income_d$temp_start[mip_income_d$dist_num == i])*coefs_bhm[i,2] +
+                                                           - mip_income_d$temp_start[mip_income_d$dist_num == i])*coefs_bhm[i,4] +
     (mip_income_d$temp_regional[mip_income_d$dist_num == i]^2 -
-       mip_income_d$temp_start[mip_income_d$dist_num == i]^2)*coefs_bhm[i,3]
+       mip_income_d$temp_start[mip_income_d$dist_num == i]^2)*coefs_bhm[i,5]
   
 }
 
@@ -685,18 +685,6 @@ mip_income_d <- mip_income_d %>%
     delta_gini_bhm = gini_impact_bhm - gini_counter
   )
 
-# ggplot(mip_income_d %>% filter(Scenario == "REF"),
-#        aes(x = Year, y = Reg_damages_bhm_frac, color = Model)) +
-#   geom_line() +
-#   facet_wrap(~ Region, ncol = 5) +
-#   theme_bw()
-# 
-# 
-# ggplot(mip_income_d %>% filter(Scenario == "REF"),
-#        aes(x = Year, y = delta_gini_bhm, color = Model)) +
-#   geom_line() +
-#   facet_wrap(~ Region, ncol = 5) +
-#   theme_bw()
 
 ##### Adaptation specification
 
@@ -779,7 +767,7 @@ mip_income_d <- mip_income_d %>%
   )
 
 # ggplot(mip_income_d %>% filter(Scenario == "REF"),
-#        aes(x = Year, y = Reg_damages_ada_frac, color = Model)) +
+#        aes(x = Year, y = Reg_damages_bhm_frac, color = Model)) +
 #   geom_line() +
 #   facet_wrap(~ Region, ncol = 5) +
 #   theme_bw()
@@ -790,6 +778,7 @@ mip_income_d <- mip_income_d %>%
 #   geom_line() +
 #   facet_wrap(~ Region, ncol = 5) +
 #   theme_bw()
+
 #### Create dataframe with post-processed impacts, for all models and scenarios ####
 
 ### 2 Variables to add to mip_data, per spec = 4 total 

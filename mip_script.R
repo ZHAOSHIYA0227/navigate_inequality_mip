@@ -411,6 +411,7 @@ gdp_pc <- mip_income_d %>%
   select(Region, gdp_pc) %>% 
   group_by(Region) %>% 
   slice_head(n = 1) %>% 
+  ungroup() %>% 
   select(Region, gdp_pc)
 
 
@@ -426,7 +427,7 @@ ggplot(policy_elast_df_plot %>%
                    point.padding = 0.5,
                    segment.color = 'grey50') +
   geom_hline(yintercept = 1, linetype = "dashed") +
-  # coord_cartesian(ylim = c(0.75, 1.05)) +
+  coord_cartesian(ylim = c(0.85, 1.05)) +
   guides(label = "none") +
   labs(x = "GDP per capita, 2020$ PPP",
        y = "Elasticity") 

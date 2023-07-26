@@ -106,11 +106,13 @@ rm(list = ls(pattern = "^prova_"))
 # set colors for deciles in plots
 colors_deciles <- c("purple", rev(colorspace::diverging_hcl(9, "Cyan-Magenta")))
 
+theme_set(theme_bw(base_size = 16))
+
+
 #### GDP damages ####
 reg_dam_plot = function(spec, dir) {
   
-  theme_set(theme_bw(base_size = 12))
-  
+
   if(spec == "BHM") {
     
     # country-level damages
@@ -233,7 +235,6 @@ reg_dam_plot(spec = "Adaptation", dir = graphdir)
 #### GINI impacts ####
 gini_plot = function(spec, dir) {
   
-  theme_set(theme_bw(base_size = 12))
   
   if(spec == "BHM") {
     
@@ -408,9 +409,7 @@ decile_plot = function (spec, dir) {
   
   mod_letters_utf <- unlist(lapply(mod_letters, utf8ToInt))
   
-  
-  theme_set(theme_bw(base_size = 12))
-  
+
   
   if(spec == "BHM") {
     
@@ -573,10 +572,9 @@ decile_plot_sel_years = function(spec, dir) {
       scale_pattern_manual(name = "Scenario", values = c("plasma", "stripe")) +
       facet_wrap(~ Region, ncol = 5) +
       scale_x_discrete(guide = guide_axis(n.dodge=2)) +
-      theme_bw() +
       theme(panel.spacing.x = unit(6, "mm"),
             legend.position="bottom",
-            plot.title = element_text(hjust = 0.5))
+            plot.title = element_text(hjust = 0.5, face = "bold"))
     
     
     # Avoided decile-level impacts in 2100, from 650 relative to REF
@@ -606,10 +604,9 @@ decile_plot_sel_years = function(spec, dir) {
       scale_fill_manual(name = "Income deciles", values = colors_deciles) +
       facet_wrap(~ Region, ncol = 5) +
       scale_x_discrete(guide = guide_axis(n.dodge=2)) +
-      theme_bw() +
       theme(panel.spacing.x = unit(6, "mm"),
             legend.position="bottom",
-            plot.title = element_text(hjust = 0.5))
+            plot.title = element_text(hjust = 0.5, face = "bold"))
     
   }
   
@@ -633,10 +630,9 @@ decile_plot_sel_years = function(spec, dir) {
       scale_pattern_manual(name = "Scenario", values = c("plasma", "stripe")) +
       facet_wrap(~ Region, ncol = 5) +
       scale_x_discrete(guide = guide_axis(n.dodge=2)) +
-      theme_bw() +
       theme(panel.spacing.x = unit(6, "mm"),
             legend.position="bottom",
-            plot.title = element_text(hjust = 0.5))
+            plot.title = element_text(hjust = 0.5, face = "bold"))
     
     # Avoided decile-level impacts in 2100, from 650 relative to REF
     p_dec_avoided_100 <- ggplot(mip_income_d %>% 
@@ -664,10 +660,9 @@ decile_plot_sel_years = function(spec, dir) {
       scale_fill_manual(name = "Income deciles", values = colors_deciles) +
       facet_wrap(~ Region, ncol = 5) +
       scale_x_discrete(guide = guide_axis(n.dodge=2)) +
-      theme_bw() +
       theme(panel.spacing.x = unit(6, "mm"),
             legend.position="bottom",
-            plot.title = element_text(hjust = 0.5))
+            plot.title = element_text(hjust = 0.5, face = "bold"))
     
     
   }

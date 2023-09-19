@@ -21,7 +21,7 @@ convert_pdftopng <- F #converts all created pdfs to png for better quality (need
 saveplot <- function(plotname, text_size=12, width=12, height=8, plot_title = T, plot_theme=theme_bw()){
   if(!dir.exists(file.path(graphdir))){dir.create(file.path(graphdir))}
   print(last_plot() + plot_theme)
-  ggsave(filename=file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", figure_format)), plot = if(plot_title){last_plot()}else{last_plot()} + theme(text = element_text(size=text_size)), width=width, height=height)
+  ggsave(filename=file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", figure_format)), plot = if(plot_title){last_plot()}else{last_plot()} + theme(text = element_text(size=text_size)), width=width, height=height, dpi = "print")
   if(figure_format=="pdf" & convert_pdftopng) shell(str_glue('pdftopng.exe {file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", figure_format))} - > {file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", "png"))}'))
 }
 
@@ -134,7 +134,7 @@ mip_income_d <- mip_income_d %>%
   filter(Year >= 2020)
 
 
-########## IDEA FROM JS IIASA MEETING ########################
+########## IDEA FROM Jarmo at  IIASA MEETING ########################
 # plot idea, as historgram type plot
 mip_income_d_pop <- mip_income_d %>% left_join(
   iiasadb_data %>% filter(Variable=="Population") %>% rename(original=Region) %>% 
@@ -287,7 +287,11 @@ p.dec.g.ii <- ggplot(
 p.dec.g.ii
 saveplot("globally_pooled_d_cons_relchange")
 
-##### END JS suggestion decile plot
+##### END Jarmo suggestion decile plot
+
+
+
+
 
 #### Compute income elasticity of policy impacts ####
 
@@ -422,18 +426,19 @@ ggplot(policy_elast_df_plot %>%
          group_by(Region) %>% 
          slice_head(n = 1),
        aes(x = gdp_pc, y = policy_elast, color = Region, label = Region)) +
+  geom_hline(yintercept = 1, linetype = "solid", color = "grey50") +
   geom_point()   + # Show dots
   geom_label_repel(box.padding   = 0.35, 
                    point.padding = 0.5,
                    segment.color = 'grey50') +
-  geom_hline(yintercept = 1, linetype = "dashed") +
+
   coord_cartesian(ylim = c(0.85, 1.05)) +
-  guides(label = "none") +
-  labs(x = "GDP per capita, 2020$ PPP",
-       y = "Elasticity") 
-
-saveplot("Policy Elasticity by Country Income")
-
+  guides(label = "none", color="none") +
+  labs(x = "GDP per capita in 2020 (PPP)",
+       y = "Climate Policy Income Elasticity") +
+  scale_x_continuous(labels = scales::dollar)
+saveplot("Policy Elasticity by Country Income", width = 8, height = 6)
+ggsave
 
 #### Compute damages: region-level ####
 

@@ -101,6 +101,13 @@ mip_income_d <- mip_income_d %>%
   select(names(prova_ref)) %>% 
   rbind(., prova_ref, prova_650)
 
+
+
+#order dataframe by country by GDP per capita
+mip_income_d <- mip_income_d %>% mutate(Region = factor(Region, levels = c("United States", "Canada", "France", "Japan", "Russia", "Mexico", "China", "Brazil", "South Africa", "India")))
+
+
+
 rm(list = ls(pattern = "^prova_"))
 
 # set colors for deciles in plots
@@ -229,8 +236,12 @@ reg_dam_plot = function(spec, dir) {
   
 }
 
-reg_dam_plot(spec = "BHM", dir = graphdir)
+#reg_dam_plot(spec = "BHM", dir = graphdir)
 reg_dam_plot(spec = "Adaptation", dir = graphdir)
+
+
+
+
 
 #### GINI impacts ####
 gini_plot = function(spec, dir) {
@@ -309,7 +320,7 @@ gini_plot = function(spec, dir) {
             panel.spacing.x = unit(6, "mm"))
     
     # Avoided Gini impacts from REF to 650 scenario
-    title_2 <- expression(atop(bold("Avoided impacts on Gini index from REF to 650, across countries")))
+    title_2 <- expression(atop(bold("Avoided Gini increase due to climate impacts (REF to 650)")))
     
     p_avoided_gini <- ggplot(mip_income_d %>% 
                                   na.omit() %>% 
@@ -329,8 +340,8 @@ gini_plot = function(spec, dir) {
                                 aes(x = Year, y = avoided_gini_ada,
                                     color = Model)) +
       geom_line(linewidth = 1) +
-      labs(y = "Avoided \u0394 Gini",
-           title = title_2) +
+      labs(y = "Avoided Gini increase [points]",
+           title = title_2, x="") +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
       theme(plot.title = element_text(hjust = 0.5),
@@ -350,8 +361,11 @@ gini_plot = function(spec, dir) {
   
 }
 
-gini_plot(spec = "BHM", dir = graphdir)
+#gini_plot(spec = "BHM", dir = graphdir)
 gini_plot(spec = "Adaptation", dir = graphdir)
+
+
+
 
 # produces regression table of Delta Gini on Delta regional temperature
 
@@ -398,7 +412,7 @@ hutils::replace_pattern_in("deltatemp","Change in temperature", file_pattern="*.
 
 }
 
-gini_temp_reg(spec = "BHM")
+#gini_temp_reg(spec = "BHM")
 gini_temp_reg(spec = "Adaptation")
 
 
@@ -543,8 +557,17 @@ decile_plot = function (spec, dir) {
   
 }
 
-decile_plot(spec = "BHM", dir = graphdir)
+#decile_plot(spec = "BHM", dir = graphdir)
 decile_plot(spec = "Adaptation", dir = graphdir)
+
+
+
+
+
+
+
+
+
 
 decile_plot_sel_years = function(spec, dir) {
   
@@ -679,5 +702,5 @@ decile_plot_sel_years = function(spec, dir) {
   
 }
 
-decile_plot_sel_years(spec = "BHM", dir = graphdir)
+#decile_plot_sel_years(spec = "BHM", dir = graphdir)
 decile_plot_sel_years(spec = "Adaptation", dir = graphdir)

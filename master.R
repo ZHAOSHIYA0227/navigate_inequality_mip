@@ -176,6 +176,10 @@ iiasadb_data <- iiasadb_data %>% filter(Region %in% c("France", "India", "Brazil
 ggplot(iiasadb_data %>% group_by(Model, Scenario) %>% filter(!str_detect(Region, "\\|")) %>% summarize(Region=unique(Region)) %>% ungroup() %>% group_by(Model, Region) %>% summarize(Scenarios=length(Scenario)), aes(Region, Model, fill=Scenarios)) + geom_tile() + theme_minimal() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label=Scenarios))  + scale_fill_gradient2(low = "white", mid = "yellow", high = "darkgreen") + scale_x_discrete(labels = function(x) str_wrap(x, width = 50))
 saveplot("Regions cleaned")
 
+
+#order dataframe by country by GDP per capita
+iiasadb_data <- iiasadb_data %>% mutate(Region = factor(Region, levels = c("United States", "Canada", "France", "Japan", "Russia", "Mexico", "China", "Brazil", "South Africa", "India")))
+
 ################################# VARIABLES ###########################################
 
 #we don't use consumption SHARE variables

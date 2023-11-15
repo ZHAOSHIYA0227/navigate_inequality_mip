@@ -18,7 +18,7 @@ library(ggpubr)
 df_imaclim <- mip_data %>%
   filter(Model == "Imaclim") %>% 
   filter(Variable == "Emissions|CO2") %>% 
-  filter(Region == "WLD") %>%
+  filter(Region == "World") %>%
   pivot_wider(names_from = "Variable", 
               values_from = "value") %>% 
   group_by(Scenario, Model, Year) %>% 

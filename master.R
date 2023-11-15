@@ -51,9 +51,9 @@ upload2iiasa <- function(filename){
 #manually convert upload files to iiasadb format
 
 #REMIND
-iiasadb_data <- upload2iiasa("REMIND_WP4_ICMP_June2023.xlsx")
-#manually combine Energy plus Insutrial Processes
-iiasadb_data <- rbind(iiasadb_data, upload2iiasa("REMIND_WP4_ICMP_June2023.xlsx") %>% filter(Variable=="Emissions|CO2|Energy"|Variable=="Emissions|CO2|Industrial Processes") %>% mutate(Variable="Emissions|CO2|Energy and Industrial Processes") %>% group_by(Scenario,Variable,Model,Region,Unit,Year) %>% summarise(value=sum(value)))
+iiasadb_data <- upload2iiasa("REMIND_WP4_ICMP_Nov2023.xlsx")
+#manually combine Energy plus Industrial Processes
+iiasadb_data <- rbind(iiasadb_data, upload2iiasa("REMIND_WP4_ICMP_Nov2023.xlsx") %>% filter(Variable=="Emissions|CO2|Energy"|Variable=="Emissions|CO2|Industrial Processes") %>% mutate(Variable="Emissions|CO2|Energy and Industrial Processes") %>% group_by(Scenario,Variable,Model,Region,Unit,Year) %>% summarise(value=sum(value)))
 #WITCH
 iiasadb_data <- rbind(iiasadb_data, upload2iiasa("WITCH-WP4-v5.xlsx") %>% mutate(Region=tolower(Region), Region=gsub("india", "India", Region)))
 #RICE
@@ -61,7 +61,8 @@ iiasadb_data <- rbind(iiasadb_data, upload2iiasa("RICE50x_v2.xlsx"))
 #NICE
 iiasadb_data <- rbind(iiasadb_data, rbind(upload2iiasa("NICE_WP4_sent_191222.xlsx"), upload2iiasa("NICE_WP4_sent_191222.xlsx") %>% filter(Variable=="Emissions|CO2|Energy and Industrial Processes" & Region!="WORLD") %>% mutate(Variable="Emissions|CO2")) )
 #IMACLIM
-iiasadb_data <- rbind(iiasadb_data, upload2iiasa("WP4_IMACLIM_sent_080523.xlsx"))
+#iiasadb_data <- rbind(iiasadb_data, upload2iiasa("WP4_IMACLIM_sent_080523.xlsx"))
+iiasadb_data <- rbind(iiasadb_data, upload2iiasa("WP4_IMACLIM_sent_041023.xlsx"))
 
 #Ad E3ME from v2 protocol
 iiasadb_data <- rbind(iiasadb_data, rbind(upload2iiasa("E3ME-FTT data for NAVIGATE Task 4.2_V5.xlsx"), upload2iiasa("E3ME-FTT data for NAVIGATE Task 4.2_V5.xlsx") %>% filter(Variable=="Emissions|CO2|Energy and Industrial Processes") %>% mutate(Variable="Emissions|CO2")) %>% mutate(Variable=gsub("MER", "PPP", Variable))) # use MER as PPP

@@ -71,7 +71,7 @@ iiasadb_data <- rbind(iiasadb_data, rbind(upload2iiasa("E3ME-FTT data for NAVIGA
 iiasadb_data <- rbind(iiasadb_data, upload2iiasa("Results_WP4_GEM-E3_cleaned.xlsx") %>% filter(value!="n/a") %>% mutate(value=as.numeric(value)) %>% mutate(Variable=gsub("MER", "PPP", Variable))) # use MER as PPP
 
 #AIM:
-iiasadb_data <- rbind(iiasadb_data, upload2iiasa("NAVIGATE_template_inequality_variables_v2_AIM_0507.xlsx") %>% mutate(Scenario=gsub("WP4_", "", Scenario), Variable=gsub(" Decile", "", Variable)))
+iiasadb_data <- rbind(iiasadb_data, upload2iiasa("NAVIGATE_template_inequality_variables_v3_AIM_231202.xlsx") %>% mutate(Scenario=gsub("WP4_", "", Scenario), Variable=gsub(" Decile", "", Variable)))
 iiasadb_data <- iiasadb_data %>% mutate(value = as.numeric(value)) %>% mutate(Variable=gsub("Expenditure Decile", "Consumption", Variable))
 
 
@@ -466,8 +466,8 @@ stargazer::stargazer(reg_carbrev, type = "latex", single.row = T, out = paste0(g
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("carbon(.*)capita","Carbon revenue per capita (1,000 $)", file_pattern="*.tex", basedir = graphdir)
 
-reg_epc_obs <- cbind(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population), predict(object = reg_carbrev, newdata = data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population)))
-table(reg_epc_obs$Model, reg_epc_obs$Region)
+#reg_epc_obs <- cbind(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population), predict(object = reg_carbrev, newdata = data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population)))
+#table(reg_epc_obs$Model, reg_epc_obs$Region)
 
 
 

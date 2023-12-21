@@ -174,7 +174,7 @@ iiasadb_data$Region <- stringi::stri_replace_all_regex(iiasadb_data$Region, patt
 
 iiasadb_data <- iiasadb_data %>% filter(Region %in% c("France", "India", "Brazil", "Mexico", "United States", "Canada", "China", "Russia", "Japan", "South Africa"))
 
-ggplot(iiasadb_data %>% group_by(Model, Scenario) %>% filter(!str_detect(Region, "\\|")) %>% summarize(Region=unique(Region)) %>% ungroup() %>% group_by(Model, Region) %>% summarize(Scenarios=length(Scenario)), aes(Region, Model, fill=Scenarios)) + geom_tile() + theme_minimal() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label=Scenarios))  + scale_fill_gradient2(low = "white", mid = "yellow", high = "darkgreen") + scale_x_discrete(labels = function(x) str_wrap(x, width = 50))
+ggplot(read_rds("inequality_mip_full.Rdata") %>% group_by(Model, Scenario) %>% filter(!str_detect(Region, "\\|")) %>% summarize(Region=unique(Region)) %>% ungroup() %>% group_by(Model, Region) %>% summarize(Scenarios=length(Scenario)) %>% mutate(Region=stringi::stri_replace_all_regex(Region, pattern=country_naming$original, replacement=country_naming$new, vectorize=FALSE)) %>% filter(Region %in% countries_reported_max) %>% mutate(Region = factor(Region, levels = c("United States", "Canada", "France", "Japan", "Russia", "Mexico", "China", "Brazil", "South Africa", "India"))), aes(Region, Model, fill=Scenarios)) + geom_tile() + theme_minimal() + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + geom_text(aes(label=Scenarios*6/10))  + scale_fill_gradient2(low = "white", mid = "yellow", high = "darkgreen") + scale_x_discrete(labels = function(x) str_wrap(x, width = 50))
 saveplot("Regions cleaned")
 
 

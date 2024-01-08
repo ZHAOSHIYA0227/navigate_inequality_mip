@@ -71,7 +71,7 @@ iiasadb_data <- rbind(iiasadb_data, rbind(upload2iiasa("E3ME-FTT data for NAVIGA
 iiasadb_data <- rbind(iiasadb_data, upload2iiasa("Results_WP4_GEM-E3_cleaned.xlsx") %>% filter(value!="n/a") %>% mutate(value=as.numeric(value)) %>% mutate(Variable=gsub("MER", "PPP", Variable))) # use MER as PPP
 
 #AIM:
-iiasadb_data <- rbind(iiasadb_data, upload2iiasa("NAVIGATE_template_inequality_variables_v3_AIM_231202.xlsx") %>% mutate(Scenario=gsub("WP4_", "", Scenario), Variable=gsub(" Decile", "", Variable)))
+iiasadb_data <- rbind(iiasadb_data, upload2iiasa("NAVIGATE_template_inequality_variables_v4_AIM_20231228.xlsx") %>% mutate(Scenario=gsub("WP4_", "", Scenario), Variable=gsub(" Decile", "", Variable)))
 iiasadb_data <- iiasadb_data %>% mutate(value = as.numeric(value)) %>% mutate(Variable=gsub("Expenditure Decile", "Consumption", Variable))
 
 
@@ -441,7 +441,7 @@ saveplot("Gini impact over scenarios all countries", width = 8, height = 12, plo
 
 #Emissions, carbon price, and transfers for EPC anaysis
 transfer_data <- iiasadb_data %>% filter(Variable %in% c("Price|Carbon", "Emissions|CO2", "Gini_recomputed", "Population")) %>% pivot_wider(id_cols = c(Scenario, Model, Region, Year),names_from = Variable)
-ggplot(transfer_data %>% filter(Scenario=="650_redist" & Year <= 2050)) + geom_line(aes(Year, `Emissions|CO2`*`Price|Carbon` / Population, color=Model)) + ylab("Carbon Revenues per capita [USD/cap]") + facet_wrap(Region ~ ., scales = "free_y", nrow = 2) + theme(legend.position = "bottom")
+ggplot(transfer_data %>% filter(Scenario=="650_redist" & Year <= 2050)) + geom_line(aes(Year, `Emissions|CO2`*`Price|Carbon` / Population, color=Model)) + ylab("Carbon Revenues per capita [USD/cap]") + facet_wrap(Region ~ ., scales = "free_x", nrow = 2) + theme(legend.position = "bottom")
 saveplot("Carbon Revenues")
 #carbon prices
 ggplot(transfer_data %>% filter(Scenario=="650_redist" & Year <= 2050)) + geom_line(aes(Year, `Price|Carbon`, color=Model)) + ylab("Carbon Price [USD/tCO2eq]") + facet_wrap(Region ~ ., scales = "free_y", nrow = 2) + theme(legend.position = "bottom")
@@ -460,7 +460,7 @@ saveplot("Carbon Revenes and Gini impact")
 #and fix start at zero
 ggplot(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050) %>% filter(`Emissions|CO2`>=0)) + geom_point(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index), color=Model, alpha=Year)) + facet_wrap(Region ~ ., scales = "free", nrow = 2) + theme(legend.position = "bottom") + geom_smooth(aes(`Emissions|CO2`*`Price|Carbon` / Population, -100*(value.y_Equality_index - value.x_Equality_index)), method="lm", formula = y ~ 0 + x) + labs(x="Carbon Revenues per capita [USD/cap]", y = "Change in the Gini with EPC in the 650 senario [points]") + geom_hline(yintercept = 0)
 
-reg_carbrev <- lm(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population *1e-3), formula = "gini_change ~ carbon_revenue_capita + Region + Model - 1")
+reg_carbrev <- lm(data_welfare_effect_reordered %>% left_join(transfer_data %>% rename(Scenario.y=Scenario)) %>% filter(Scenario.y=="650_redist" &  Scenario.x=="650" & Year <= 2050 & Year >= 2020) %>% mutate(gini_change=-100*(value.y_Equality_index - value.x_Equality_index), carbon_revenue_capita=`Emissions|CO2`*`Price|Carbon` / Population *1e-3) %>% mutate(Model=as.factor(Model), Model=relevel(Model, ref="AIM"), Region=as.factor(Region), Region=relevel(Region, ref="United States")), formula = "gini_change ~ carbon_revenue_capita + Region + Model")
 summary(reg_carbrev)
 stargazer::stargazer(reg_carbrev, type = "latex", single.row = T, out = paste0(graphdir, "/reg.tex"), dep.var.labels = "Gini impact  [points]")
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)

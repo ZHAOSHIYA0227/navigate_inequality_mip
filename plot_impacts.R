@@ -132,7 +132,7 @@ reg_dam_plot = function(spec, dir) {
                         aes(x = Year, y = Reg_damages_bhm_frac*100,
                             linetype = Scenario, color = Model)) +
       geom_line(linewidth = 1) +
-      labs(y = "Damages, %",
+      labs(y = "Damages [% of income]",
            title = title) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
@@ -162,7 +162,7 @@ reg_dam_plot = function(spec, dir) {
                         aes(x = Year, y = avoided_reg_dam_bhm,
                             color = Model)) +
       geom_line(linewidth = 1) +
-      labs(y = "Avoided damages, %",
+      labs(y = "Avoided damages [% of income]",
            title = title_2) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
@@ -185,7 +185,7 @@ reg_dam_plot = function(spec, dir) {
                         aes(x = Year, y = Reg_damages_ada_frac*100,
                             linetype = Scenario, color = Model)) +
       geom_line(linewidth = 1) +
-      labs(y = "Damages, %",
+      labs(y = "Damages [% of income]",
            title = title) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
@@ -214,7 +214,7 @@ reg_dam_plot = function(spec, dir) {
                                 aes(x = Year, y = avoided_reg_dam_ada,
                                     color = Model)) +
       geom_line(linewidth = 1) +
-      labs(y = "Avoided damages, %",
+      labs(y = "Avoided damages [% of income]",
            title = title_2) +
       xlim(c(2020, 2100)) +
       facet_wrap(~ Region, ncol = 5) +
@@ -442,7 +442,7 @@ decile_plot = function (spec, dir) {
                            color = Decile, linetype = Scenario, shape = Model)) +
     geom_line(alpha = 0.5) +
     geom_point() +
-    labs(x = "Year", y = "Damages, %", title = title) + ### checking whether common axis in ggarrange works
+    labs(x = "Year", y = "Damages [% of income]", title = title) + ### checking whether common axis in ggarrange works
     scale_color_manual(name = "Income deciles", values = colors_deciles) +
     scale_shape_manual(name = "Models", values = mod_letters_utf) +
     facet_wrap(~ Region, ncol = 5) +
@@ -476,7 +476,7 @@ decile_plot = function (spec, dir) {
                            color = Decile, shape = Model)) +
     geom_line(alpha = 0.5) +
     geom_point() +
-    labs(x = "Year", y = "Avoided damages, %", title = title_2) +
+    labs(x = "Year", y = "Avoided damages [% of income]", title = title_2) +
     scale_color_manual(name = "Income deciles", values = colors_deciles) +
     scale_shape_manual(name = "Models", values = mod_letters_utf) +
     facet_wrap(~ Region, ncol = 5) +
@@ -502,7 +502,7 @@ decile_plot = function (spec, dir) {
                              color = Decile, linetype = Scenario, shape = Model)) +
       geom_line(alpha = 0.5) +
       geom_point() +
-      labs(x = "Year", y = "Damages, %", title = title) + ### checking whether common axis in ggarrange works
+      labs(x = "Year", y = "Damages [% of income]", title = title) + ### checking whether common axis in ggarrange works
       scale_color_manual(name = "Income deciles", values = colors_deciles) +
       scale_shape_manual(name = "Models", values = mod_letters_utf) +
       facet_wrap(~ Region, ncol = 5) +
@@ -534,7 +534,7 @@ decile_plot = function (spec, dir) {
                                      color = Decile, shape = Model)) +
       geom_line(alpha = 0.5) +
       geom_point() +
-      labs(x = "Year", y = "Avoided damages, %", title = title_2) +
+      labs(x = "Year", y = "Avoided damages [% of income]", title = title_2) +
       scale_color_manual(name = "Income deciles", values = colors_deciles) +
       scale_shape_manual(name = "Models", values = mod_letters_utf) +
       facet_wrap(~ Region, ncol = 5) +
@@ -588,7 +588,7 @@ decile_plot_sel_years = function(spec, dir) {
       geom_bar_pattern(aes(pattern = Scenario,
                            group = Decile, fill = Decile),
                        stat = "identity", position = position_dodge(0.9), width = 2) +
-      labs(x = "Model", y = "Damages, %",
+      labs(x = "Model", y = "Damages [% of income]",
            title = "Damages at decile level in 2100",
            subtitle = "Without adaptation") + 
       scale_fill_manual(name = "Income deciles", values = colors_deciles) +
@@ -621,7 +621,7 @@ decile_plot_sel_years = function(spec, dir) {
                                 aes(x = Model, y = avoided_reg_dam_bhm)) +
       geom_bar(aes(group = Decile, fill = Decile),
                stat = "identity", position = position_dodge(0.9), width = 2) +
-      labs(x = "Model", y = "Avoided damages, %",
+      labs(x = "Model", y = "Avoided damages [% of income]",
            title = "Avoided damages at decile level in 2100",
            subtitle = "Without adaptation") + 
       scale_fill_manual(name = "Income deciles", values = colors_deciles) +
@@ -647,7 +647,7 @@ decile_plot_sel_years = function(spec, dir) {
       geom_bar_pattern(aes(pattern = Scenario,
                            group = Decile, fill = Decile),
                        stat = "identity", position = position_dodge(0.9), width = 2) +
-      labs(x = "Model", y = "Damages, %",
+      labs(x = "Model", y = "Damages [% of income]",
            title = "Damages at decile level in 2100") + 
       scale_fill_manual(name = "Income deciles", values = colors_deciles) +
       scale_pattern_manual(name = "Scenario", values = c("plasma", "stripe")) +
@@ -678,7 +678,7 @@ decile_plot_sel_years = function(spec, dir) {
                                 aes(x = Model, y = avoided_reg_dam_ada)) +
       geom_bar(aes(group = Decile, fill = Decile),
                stat = "identity", position = position_dodge(0.9), width = 2) +
-      labs(x = "Model", y = "Avoided damages, %",
+      labs(x = "Model", y = "Avoided damages [% of income]",
            title = "Avoided damages at decile level in 2100") + 
       scale_fill_manual(name = "Income deciles", values = colors_deciles) +
       facet_wrap(~ Region, ncol = 5) +

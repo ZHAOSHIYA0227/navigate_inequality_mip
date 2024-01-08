@@ -337,7 +337,7 @@ policy_impact_reg <- lm(log(delta_income_policy) ~ log(REF) + Model + Region +
                           factor(Year) -1,
                         data = policy_df %>% 
                           filter(delta_income_policy < 0) %>% 
-                          mutate(delta_income_policy = -1*delta_income_policy))
+                          mutate(delta_income_policy = -1*delta_income_policy) %>% mutate(Model=as.factor(Model), Model=relevel(Model, ref="AIM"), Region=as.factor(Region), Region=relevel(Region, ref="United States")))
 
 stargazer(policy_impact_reg,
           type = "latex",
@@ -348,9 +348,9 @@ stargazer(policy_impact_reg,
           single.row = T,
           out = paste0(graphdir, "/policy_impact_elast.tex"))
 
-hutils::replace_pattern_in("log(REF)", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
+hutils::replace_pattern_in("log\\(REF\\)", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
-hutils::replace_pattern_in("factor(Year)","", file_pattern="*.tex", basedir = graphdir)
+hutils::replace_pattern_in("factor\\(Year\\)","", file_pattern="*.tex", basedir = graphdir)
 # reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata = policy_df)) %>% filter(!is.na(...10))
 # table(reg_policy_obs$Model, reg_policy_obs$Region)
 
@@ -360,7 +360,7 @@ hutils::replace_pattern_in("factor(Year)","", file_pattern="*.tex", basedir = gr
 # function to compute policy elasticity in each region
 policy_elast = function(r) {
   
-  df_tmp <- policy_df %>% 
+  df_tmp <- policy_df %>% mutate(Model=as.factor(Model), Model=relevel(Model, ref="AIM")) %>% 
     filter(Region == r)
   
   if(r == "Canada") {
@@ -368,7 +368,7 @@ policy_elast = function(r) {
     df_tmp <- df_tmp %>% filter(Model != "WITCH")
     
     reg_tmp <- lm(log(delta_income_policy) ~ log(REF) +
-                    factor(Year) -1,
+                    factor(Year),
                   data = df_tmp %>% 
                     filter(delta_income_policy < 0) %>% 
                     mutate(delta_income_policy = -1*delta_income_policy))
@@ -378,7 +378,7 @@ policy_elast = function(r) {
   else {
     
     reg_tmp <- lm(log(delta_income_policy) ~ log(REF) + Model +
-                    factor(Year) -1,
+                    factor(Year),
                   data = df_tmp %>% 
                     filter(delta_income_policy < 0) %>% 
                     mutate(delta_income_policy = -1*delta_income_policy))
@@ -405,7 +405,7 @@ policy_elast = function(r) {
 }
 
 policy_elast_df_plot <- list()
-
+policy_df <- policy_df
 policy_elast_df_plot <- lapply(unique(policy_df$Region), policy_elast) %>% 
   bind_rows()
 

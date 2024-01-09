@@ -334,7 +334,7 @@ saveplot("Policy Impact by Decile")
 
 # Regressing difference in decile-level income due to policy on income levels under REF
 policy_impact_reg <- lm(log(delta_income_policy) ~ log(REF) + Model + Region +
-                          factor(Year) -1,
+                          factor(Year),
                         data = policy_df %>% 
                           filter(delta_income_policy < 0) %>% 
                           mutate(delta_income_policy = -1*delta_income_policy) %>% mutate(Model=as.factor(Model), Model=relevel(Model, ref="AIM"), Region=as.factor(Region), Region=relevel(Region, ref="United States")))
@@ -405,7 +405,7 @@ policy_elast = function(r) {
 }
 
 policy_elast_df_plot <- list()
-policy_df <- policy_df
+#policy_df <- policy_df
 policy_elast_df_plot <- lapply(unique(policy_df$Region), policy_elast) %>% 
   bind_rows()
 

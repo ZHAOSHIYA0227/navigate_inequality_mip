@@ -386,13 +386,13 @@ gini_temp_reg = function(spec, dir) {
 if(spec == "BHM") {
   
   gini_temp_reg <- lm(delta_gini_bhm*100 ~ deltatemp +
-                        Model -1, data = mip_income_reg)
+                        Model, data = mip_income_reg)
 }
 
 if(spec == "Adaptation") {
   
   gini_temp_reg <- lm(delta_gini_ada*100 ~ deltatemp +
-                        Model -1, data = mip_income_reg)
+                        Model, data = mip_income_reg)
 }
 
 stargazer(gini_temp_reg,

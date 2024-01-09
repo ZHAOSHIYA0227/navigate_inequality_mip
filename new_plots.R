@@ -75,7 +75,7 @@ ggsave(filename = file.path(graphdir, "Gini_violinplot_final_aggregated.pdf"), w
 
 
 #Map of mean effects on Gini
-data_for_map <- data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2070, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "650", "1150_redist", "650_redist", "1150_impact_redist", "650_impact_redist")) %>% filter(str_detect(Scenario.y, "650")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5, cbudget=gsub("[a-z_]","", Scenario.y)) %>% mutate(Scenario.y.nice=case_when(Scenario.y=="650" ~ "Climate Policy", Scenario.y=="650_redist" ~ "with EPC redistribution", Scenario.y=="650_impact_redist" ~ "and avoided Impacts"), Scenario.y.nice = fct_relevel(as.factor(Scenario.y.nice), c("Climate Policy", "with EPC redistribution", "and avoided Impacts"))) %>% mutate(Year=as.character(Year)) %>% filter(Year %in% c(2030, 2050, 2100)) %>% ungroup() %>% group_by(Region, Year, Scenario.y.nice) %>% summarize(gini_mean_change=mean(100*(value.x_Equality_index-value.y_Equality_index)), gini_median_change=median(100*(value.x_Equality_index-value.y_Equality_index)), welfare_median_change=median(100*((`value.y_GDP|PPP`*value.y_Equality_index)/(`value.x_GDP|PPP`*value.x_Equality_index)-1)))
+data_for_map <- data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2070, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "650", "1150_redist", "650_redist", "1150_impact_redist", "650_impact_redist")) %>% filter(str_detect(Scenario.y, "650")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5, cbudget=gsub("[a-z_]","", Scenario.y)) %>% mutate(Scenario.y.nice=case_when(Scenario.y=="650" ~ "Climate Policy", Scenario.y=="650_redist" ~ "with EPC redistribution", Scenario.y=="650_impact_redist" ~ "and avoided Impacts"), Scenario.y.nice = fct_relevel(as.factor(Scenario.y.nice), c("Climate Policy", "with EPC redistribution", "and avoided Impacts"))) %>% mutate(Year=as.character(Year)) %>% filter(Year %in% c(2030, 2050, 2100)) %>% ungroup() %>% group_by(Region, Year, Scenario.y.nice) %>% summarize(gini_mean_change=mean(100*(value.x_Equality_index-value.y_Equality_index)), gini_median_change=median(100*(value.x_Equality_index-value.y_Equality_index)), welfare_median_change=median(100*((`value.y_GDP|PPP`*value.y_Equality_index)/(`value.x_GDP|PPP`*value.x_Equality_index)-1)), gdp_median_change=median(100*((`value.y_GDP|PPP`)/(`value.x_GDP|PPP`)-1)))
 data_for_map <- data_for_map %>% mutate(iso_a3 = countrycode::countrycode(Region, "country.name", "iso3c"))
 require(sf)
 require(rnaturalearth)
@@ -101,18 +101,24 @@ ggsave(filename = file.path(graphdir, "Gini_map.pdf"), width = 11, height = 7.5,
 
 #### MODEL DIFFERENCES
 data_welfare_effect_reordered <- data_welfare_effect_reordered %>% mutate(Type=case_when(Model %in% c("AIM", "GEM-E3", "Imaclim") ~ "CGE", Model %in% c("ReMIND", "WITCH") ~ "DP-IAM", Model %in% c("NICE", "RICE50+") ~ "CB-IAM", Model %in% c("E3ME") ~ "Macroeconometric", TRUE ~ "Other")) %>% mutate(Model_letter=ifelse(Model=="RICE50+", "+", substr(Model,1,1)), Year_Model=paste0(Model_letter, "&", Year)) %>% ungroup() %>% arrange(as.numeric(Year), Model_letter) %>% mutate(Year_Model = factor(Year_Model, levels =  unique(Year_Model)))
+
+
 #violinplot Gini aggregated over time
 ggplot(data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "650", "1150_redist", "650_redist", "1150_impact_redist", "650_impact_redist")) %>% filter(str_detect(Scenario.y, "650")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5, cbudget=gsub("[a-z_]","", Scenario.y)) %>% mutate(Scenario.y.nice=case_when(Scenario.y=="650" ~ "Climate Policy", Scenario.y=="650_redist" ~ "with EPC redistribution", Scenario.y=="650_impact_redist" ~ "and avoided Impacts"), Scenario.y.nice = fct_relevel(as.factor(Scenario.y.nice), c("Climate Policy", "with EPC redistribution", "and avoided Impacts"))) %>% arrange(Type)  %>% mutate(Model = factor(Model, levels =  unique(Model))) %>% mutate(Year=as.character(Year), Model_offset=as.factor(Model), Model_offset=as.numeric(Model_offset), Year=gsub("2100", "2075", Year))) + labs(x="", y="", title = "", color ="Model") + facet_grid(Scenario.y.nice ~ ., scales = "free")  + theme_bw() + geom_hline(yintercept = 0) + labs(y="Change in Gini from Reference [points]", x="", title="Impact on the Gini index by Model and Model type") + scale_shape_manual(values=seq(0,9)) + theme(strip.text.y = element_text(size = 7)) +geom_point(aes(x = as.numeric(Year)+(Model_offset-4.5)/1.0, y = 100*(value.x_Equality_index-value.y_Equality_index), color=Model, shape=Type)) + scale_x_continuous(breaks = c(2030, 2050, 2075), labels = c(2030, 2050, 2100)) + scale_shape_manual(values = c(15, 16, 17, 18))
 
 require(ggh4x)
-#ggplot(data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2070, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "650", "1150_redist", "650_redist", "1150_impact_redist", "650_impact_redist")) %>% filter(str_detect(Scenario.y, "650")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5, cbudget=gsub("[a-z_]","", Scenario.y)) %>% mutate(Scenario.y.nice=case_when(Scenario.y=="650" ~ "Climate Policy", Scenario.y=="650_redist" ~ "with EPC redistribution", Scenario.y=="650_impact_redist" ~ "and avoided Impacts"), Scenario.y.nice = fct_relevel(as.factor(Scenario.y.nice), c("Climate Policy", "with EPC redistribution", "and avoided Impacts"))) %>% mutate(Year=as.character(Year), Model_offset=as.factor(Model), Model_offset=as.numeric(Model_offset), Year=gsub("2100", "2090", Year))) + labs(x="", y="", title = "", color ="Model") + facet_grid(Scenario.y.nice ~ ., scales = "free")  + theme_bw() + geom_hline(yintercept = 0) + labs(y="Change in Gini from Reference [points]", x="", title="Impact on the Gini index by Model and Model type") + scale_shape_manual(values=seq(0,9)) + theme(strip.text.y = element_text(size = 7)) +geom_point(aes(x = Year_Model, y = 100*(value.x_Equality_index-value.y_Equality_index), color=Model, shape=Type)) + scale_shape_manual(values = c(15, 16, 17, 18)) + guides(x = ggh4x::guide_axis_nested(delim = "&")) + theme(ggh4x.axis.nestline.x = element_line(linewidth = 0.5), ggh4x.axis.ticks.length.minor=rel(0), axis.ticks.length.x=unit(0, "cm"), panel.grid.major = element_blank(), panel.spacing.x = unit(0, "pt"))
-
 g <- ggplot_gtable(ggplot_build(last_plot()+ theme(strip.text.y = element_text(colour = 'white', face = "bold")))); stripr <- which(grepl('strip-r', g$layout$name)); fills <- c("darkred","darkblue","darkgreen")
 k <- 1; for (i in stripr) {j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder)); g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]; k <- k+1;}
 grid::grid.draw(g)
 ggsave(filename = file.path(graphdir, "Gini_violinplot_final_modeldifferences.png"), width = 7, height = 5, plot = g)
 ggsave(filename = file.path(graphdir, "Gini_violinplot_final_modeldifferences.pdf"), width = 7, height = 5, plot = g)
 
+#Gini with maps
+p_map_gini <- ggplot(data = data_map_geometry %>% filter(Scenario.y.nice=="and avoided Impacts" & Year < 2100)) + borders("world", colour = "grey80", fill = NA) + geom_sf(aes(fill = gini_median_change, geometry = geometry)) + scale_fill_gradient2(low="red", high="blue", mid = "grey", midpoint = 0, guide="colorbar",na.value="white")+ ggtitle("") + labs(fill = "", x = "", y = "") + theme_bw() + theme(strip.background = element_rect(fill = "grey"), legend.position = "bottom") + coord_sf(ylim = c(-50, 90))  + facet_grid(. ~ Year) + geom_sf_text(aes(label = sprintf("%+.1f", gini_median_change) , geometry = geometry), colour = "black", size=3.5) + theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank()) + theme(strip.text.y = element_text(size = 7), legend.position = c(.5,.15), legend.direction = "horizontal", legend.background=element_blank()) + theme(panel.spacing = unit(10, "lines"))
+#combined
+ggpubr::ggarrange(g, p_map_gini, ncol=1, nrow=2, heights = c(2.2, 1.1), align = "hv")
+ggsave(filename = file.path(graphdir, "Gini_violinplot_final_modeldifferences_withmaps.png"), width = 8, height = 6)  
+ggsave(filename = file.path(graphdir, "Gini_violinplot_final_modeldifferences_withmaps.pdf"), width = 8, height = 6) 
 
 
 
@@ -125,6 +131,13 @@ grid::grid.draw(g)
 ggsave(filename = file.path(graphdir, "GDP_violinplot_final_modeldifferences.png"), width = 7, height = 5, plot = g)
 ggsave(filename = file.path(graphdir, "GDP_violinplot_final_modeldifferences.pdf"), width = 7, height = 5, plot = g)
 
+#GDP with maps
+p_map_gdp <- ggplot(data = data_map_geometry %>% filter(Scenario.y.nice=="and avoided Impacts" & Year < 2100)) + borders("world", colour = "grey80", fill = NA) + geom_sf(aes(fill = gdp_median_change, geometry = geometry)) + scale_fill_gradient2(low="red", high="blue", mid = "grey", midpoint = 0, guide="colorbar",na.value="white", limits=c(-10,+5))+ ggtitle("") + labs(fill = "", x = "", y = "") + theme_bw() + theme(strip.background = element_rect(fill = "grey"), legend.position = "bottom") + coord_sf(ylim = c(-50, 90))  + facet_grid(. ~ Year) + geom_sf_text(aes(label = sprintf("%+.1f", gdp_median_change) , geometry = geometry), colour = "black", size=3.5) + theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank()) + theme(strip.text.y = element_text(size = 7), legend.position = c(.5,.15), legend.direction = "horizontal", legend.background=element_blank()) + theme(panel.spacing = unit(10, "lines"))
+#combined
+ggpubr::ggarrange(g, p_map_gdp, ncol=1, nrow=2, heights = c(2.2, 1.1), align = "hv")
+ggsave(filename = file.path(graphdir, "GDP_violinplot_final_modeldifferences_withmaps.png"), width = 8, height = 6)  
+ggsave(filename = file.path(graphdir, "GDP_violinplot_final_modeldifferences_withmaps.pdf"), width = 8, height = 6) 
+
 
 
 
@@ -136,12 +149,15 @@ grid::grid.draw(g)
 ggsave(filename = file.path(graphdir, "Welfare_violinplot_final_modeldifferences.png"), width = 7, height = 5, plot = g)
 ggsave(filename = file.path(graphdir, "Welfare_violinplot_final_modeldifferences.pdf"), width = 7, height = 5, plot = g)
 
-
-
 #Welfare with maps
 p_map_welfare <- ggplot(data = data_map_geometry %>% filter(Scenario.y.nice=="and avoided Impacts" & Year < 2100)) + borders("world", colour = "grey80", fill = NA) + geom_sf(aes(fill = welfare_median_change, geometry = geometry)) + scale_fill_gradient2(low="red", high="blue", mid = "grey", midpoint = 0, guide="colorbar",na.value="white", limits=c(-10,+5))+ ggtitle("") + labs(fill = "", x = "", y = "") + theme_bw() + theme(strip.background = element_rect(fill = "grey"), legend.position = "bottom") + coord_sf(ylim = c(-50, 90))  + facet_grid(. ~ Year) + geom_sf_text(aes(label = sprintf("%+.1f", welfare_median_change) , geometry = geometry), colour = "black", size=3.5) + theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank()) + theme(strip.text.y = element_text(size = 7), legend.position = c(.5,.15), legend.direction = "horizontal", legend.background=element_blank()) + theme(panel.spacing = unit(10, "lines"))
-
 #combined
 ggpubr::ggarrange(g, p_map_welfare, ncol=1, nrow=2, heights = c(2.2, 1.1), align = "hv")
 ggsave(filename = file.path(graphdir, "Welfare_violinplot_final_modeldifferences_withmaps.png"), width = 8, height = 6)  
 ggsave(filename = file.path(graphdir, "Welfare_violinplot_final_modeldifferences_withmaps.pdf"), width = 8, height = 6)  
+
+
+
+
+
+

@@ -383,7 +383,7 @@ policy_elast = function(r) {
                     filter(delta_income_policy < 0) %>% 
                     mutate(delta_income_policy = -1*delta_income_policy))
     
-    df_tmp$policy_elast <- coefficients(reg_tmp)[1]
+    df_tmp$policy_elast <- coefficients(reg_tmp)[2]
     
   }
   
@@ -405,7 +405,6 @@ policy_elast = function(r) {
 }
 
 policy_elast_df_plot <- list()
-#policy_df <- policy_df
 policy_elast_df_plot <- lapply(unique(policy_df$Region), policy_elast) %>% 
   bind_rows()
 
@@ -438,7 +437,7 @@ ggplot(policy_elast_df_plot %>%
        y = "Climate Policy Income Elasticity") +
   scale_x_continuous(labels = scales::dollar)
 saveplot("Policy Elasticity by Country Income", width = 8, height = 6)
-ggsave
+
 
 #### Compute damages: region-level ####
 

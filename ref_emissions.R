@@ -141,7 +141,7 @@ ref_emissions$Scenario <- gsub("_post_process", "", ref_emissions$Scenario)
 ref_emissions <- ref_emissions %>% 
   mutate(Scenario_type = case_when(
     Scenario == "REF" | Scenario == "REF_impact" ~ "Reference",
-    Scenario == "650" | Scenario == "650_impact" | Scenario == "650_impact_redist" | Scenario == "650_redist" ~ "650",
+    Scenario == "Paris" | Scenario == "Paris_impact" | Scenario == "Paris_impact_redist" | Scenario == "Paris_redist" ~ "Paris",
     Scenario == "1150" | Scenario == "1150_impact" | Scenario == "1150_impact_redist" | Scenario == "1150_redist" ~ "1150",
     TRUE ~ as.character(Scenario)
   ))
@@ -149,13 +149,13 @@ ref_emissions <- ref_emissions %>%
 ## Create factor variable for budget
 ref_emissions <- ref_emissions %>% 
   mutate(budget = case_when (
-    Scenario == "650" | Scenario == "650_impact" | Scenario == "650_impact_redist" | Scenario == "650_redist" ~ 650,
+    Scenario == "Paris" | Scenario == "Paris_impact" | Scenario == "Paris_impact_redist" | Scenario == "Paris_redist" ~ 650,
     Scenario == "1150" | Scenario == "1150_impact" | Scenario == "1150_impact_redist" | Scenario == "1150_redist" ~ 1150,
   ))
 
 # Annual emissions, by scenario type
 p_fl <- ggplot(ref_emissions %>% filter(!str_detect(Scenario, "1150")) %>% mutate(Scenario=gsub("redist", "epc", Scenario)) %>% 
-                 mutate(Scenario_type = factor(Scenario_type, levels = c("Reference", "650", "1150")))) +
+                 mutate(Scenario_type = factor(Scenario_type, levels = c("Reference", "Paris", "1150")))) +
   geom_line(aes(x = Year, y = global_emissions/1000,
                 color = Model, linetype = Scenario)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
@@ -166,7 +166,7 @@ p_fl <- ggplot(ref_emissions %>% filter(!str_detect(Scenario, "1150")) %>% mutat
 
 # Cumulative emissions, by scenario type
 p_st <- ggplot(ref_emissions %>% filter(!str_detect(Scenario, "1150")) %>% mutate(Scenario=gsub("redist", "epc", Scenario)) %>% 
-                 mutate(Scenario_type = factor(Scenario_type, levels = c("Reference", "650", "1150")))) +
+                 mutate(Scenario_type = factor(Scenario_type, levels = c("Reference", "Paris", "1150")))) +
   geom_line(aes(x = Year, y = cum_global_emissions/1000,
                 color = Model, linetype = Scenario)) +
   geom_hline(aes(yintercept = budget), linetype = "dashed") +
@@ -186,7 +186,7 @@ ref_emissions <- ref_emissions %>%
   )
 
 p_t <- ggplot(ref_emissions %>% filter(!str_detect(Scenario, "1150")) %>% mutate(Scenario=gsub("redist", "epc", Scenario)) %>% 
-         mutate(Scenario_type = factor(Scenario_type, levels = c("Reference", "650", "1150")))) +
+         mutate(Scenario_type = factor(Scenario_type, levels = c("Reference", "Paris", "1150")))) +
   geom_line(aes(x = Year, y = dT_global + 1.1,
                 color = Model, linetype = Scenario)) +
   xlim(c(2020, 2100)) +

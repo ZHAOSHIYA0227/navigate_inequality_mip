@@ -134,161 +134,6 @@ mip_income_d <- mip_income_d %>%
   filter(Year >= 2020)
 
 
-########## IDEA FROM Jarmo at  IIASA MEETING ########################
-# plot idea, as historgram type plot
-mip_income_d_pop <- mip_income_d %>% left_join(
-  iiasadb_data %>% filter(Variable=="Population") %>% rename(original=Region) %>% 
-    left_join(country_naming) %>% drop_na() %>% 
-    rename(Region=new,
-           pop=value)
-)
-add_percentile_columns <- function(df, percentiles = c(0.25, 0.5, 0.75), 
-                                   group.cols = c("Variable", "Year")) {
-  p_names <- map_chr(percentiles, ~ paste0("p", .x * 100))
-  
-  p_funs <- map(percentiles, ~ partial(quantile, probs = .x, na.rm = TRUE)) %>%
-    set_names(nm = p_names)
-  
-  group.cols <- enquo(group.cols) # need to quote
-  
-  df.percentiles <- df %>%
-    group_by_at(vars(!!group.cols)) %>%
-    summarize_at(vars(value), .funs = p_funs)
-  
-  return(df %>% left_join(df.percentiles))
-}
-mip_income_d_pop_global <- mip_income_d_pop %>% drop_na() %>%
-  group_by(
-    Scenario,Year,Model
-  ) %>% summarise(pop.global=sum(pop/10))
-
-mutate_cond <- function(.data, condition, ..., envir = parent.frame()) {
-  condition <- eval(substitute(condition), .data, envir)
-  .data[condition, ] <- .data[condition, ] %>% mutate(...)
-  .data
-}
-
-dec.g <- mip_income_d_pop %>% left_join(mip_income_d_pop_global) %>% ungroup() %>% 
-  #' TODO // issues to fix or check:
-  #' - [ ] WITCH India: population missing
-  #' - [ ] WITCH Canada: decile income missing
-  #' - [ ] E3ME only France
-  #' - [ ] REMIND super high 2100 relative impact of redist and mitigation on D1-4
-  #' - [ ] RICE super high 2030 relative impact of redist and mitigation on D1
-  #' - [ ] RICE 2050 showing mitigation+redist is worse than REF (both with impacts)
-  #' 
-  #' 
-  filter(Model!="WITCH") %>%
-  filter(Model!="E3ME") %>% #(only has France)
-  
-    
-  arrange(Year,Model,Scenario,Decile_income) %>% 
-  group_by(Year,Model,Scenario) %>% 
-  mutate(pop.cumu=cumsum(pop/10)) %>% 
-  mutate(Decile_global=NA) %>% 
-  mutate_cond(pop.cumu<=pop.global*0.1, Decile_global="D1") %>% 
-  mutate_cond(((pop.cumu>pop.global*0.1)&(pop.cumu<=pop.global*0.2)), Decile_global="D2") %>% 
-  mutate_cond(((pop.cumu>pop.global*0.2)&(pop.cumu<=pop.global*0.3)), Decile_global="D3") %>% 
-  mutate_cond(((pop.cumu>pop.global*0.3)&(pop.cumu<=pop.global*0.4)), Decile_global="D4") %>% 
-  mutate_cond(((pop.cumu>pop.global*0.4)&(pop.cumu<=pop.global*0.5)), Decile_global="D5") %>% 
-  mutate_cond(((pop.cumu>pop.global*0.5)&(pop.cumu<=pop.global*0.6)), Decile_global="D6") %>% 
-  mutate_cond(((pop.cumu>pop.global*0.6)&(pop.cumu<=pop.global*0.7)), Decile_global="D7") %>% 
-  mutate_cond(((pop.cumu>pop.global*0.7)&(pop.cumu<=pop.global*0.8)), Decile_global="D8") %>% 
-  mutate_cond(((pop.cumu>pop.global*0.8)&(pop.cumu<=pop.global*0.9)), Decile_global="D9") %>% 
-  mutate_cond(((pop.cumu>pop.global*0.9)), Decile_global="D10") %>%
-  group_by(Year,Model,Scenario) %>%
-  ungroup()
-
-dec.g.st <- dec.g %>% 
-  rename(value=Decile_income) %>% 
-  add_percentile_columns(group.cols = c("Year","Model","Scenario","Decile_global"),
-                         percentiles = c(0.05,0.25,0.5,0.75,0.95)) %>% 
-  distinct(Year,Model,Scenario,Decile_global,p5,p25,p50,p75,p95)
-
-p.dec.g.i <- ggplot(
-  data=dec.g %>% 
-    filter(Scenario == "REF" | Scenario == "650") %>% 
-    filter(Year%in%c(2020,2040,2100)),
-  aes(x=as.numeric(gsub("D","",Decile_global)),y=Decile_income)
-) +
-  facet_grid(Year~Scenario) +
-  # geom_boxplot(aes(colour=Decile_global))
-  geom_point()
-p.dec.g.i
-
-# take stats on two scenarios, percentage difference
-dec.g.diff.st <- 
-  
-  # 650
-  dec.g %>% #pull(Scenario) %>% unique() 
-  select(-Scenario_type) %>% 
-  filter(Scenario == "REF" | Scenario == "650") %>% 
-  distinct(Year,Model,Region,Decile,pop,Scenario,Decile_global,Decile_income) %>% # drops 306 rows of 12920 rows? (decile)
-  
-  pivot_wider(names_from = Scenario, values_from = `Decile_income`) %>% 
-  
-  mutate(value= (`650`-`REF`) / `REF`) %>% 
-  mutate(Scenario="(650 - REF)/REF") %>% 
-  
-  # stronger mitigation effect (with impact and with redist)
-  bind_rows(
-    dec.g %>% 
-      select(-Scenario_type) %>% 
-      filter(Scenario == "1150_impact_redist" | Scenario == "650_impact_redist") %>% 
-      distinct(Year,Model,Region,Decile,pop,Scenario,Decile_global,Decile_income) %>% # drops 306 rows of 12920 rows? (decile)
-      
-      pivot_wider(names_from = Scenario, values_from = `Decile_income`) %>% 
-      
-      mutate(value= (`650_impact_redist`-`1150_impact_redist`) / `1150_impact_redist`) %>% 
-      mutate(Scenario="(650_impact_redist - 1150_impact_redist)/1150_impact_redist")
-  ) %>% 
-  
-  
-  # simple percentiles, by occurrence.
-  #' TODO:
-  #' - [ ] try weighted quantiles here ##https://search.r-project.org/CRAN/refmans/DescTools/html/Quantile.html
-  
-  add_percentile_columns(group.cols = c("Year","Model","Scenario","Decile_global"),
-                         percentiles = c(0.05,0.25,0.5,0.75,0.95)) %>% 
-  distinct(Year,Model,Scenario,Decile_global,p5,p25,p50,p75,p95)    
-
-    
-p.dec.g.ii <- ggplot(
-  data= dec.g.diff.st %>% 
-    filter(Year%in%c(2030,2050,2100)),
-  aes(x=as.factor(as.numeric(gsub("D","",Decile_global))))
-) +
-  facet_grid(Year~Scenario) +
-  geom_hline(yintercept = 0, linetype="dashed") +
-  geom_pointrange(
-    aes(
-      color=Model,
-      ymin=p5,
-      y=p50,
-      ymax=p95
-    ),
-    position = position_dodge2(w=0.3),
-    alpha=0.5
-  ) +
-  geom_pointrange(
-    aes(
-      color=Model,
-      ymin=p25,
-      y=p50,
-      ymax=p75
-    ),
-    linewidth=1.5,
-    position = position_dodge2(w=0.3)
-  ) +
-  scale_y_continuous(labels = scales::percent) +
-  ylab("Percentage reduction in Consumption") +
-  xlab("Decile") +
-  labs("Pooled income deciles")
-p.dec.g.ii
-saveplot("globally_pooled_d_cons_relchange")
-
-##### END Jarmo suggestion decile plot
-
 
 
 
@@ -296,7 +141,7 @@ saveplot("globally_pooled_d_cons_relchange")
 #### Compute income elasticity of policy impacts ####
 
 policy_df <- mip_income_d %>% 
-  filter(Scenario == "REF" | Scenario == "650") %>% 
+  filter(Scenario == "REF" | Scenario == "Paris") %>% 
   select(Scenario, Model, Region, Year, Decile, Decile_income) %>% 
   # mutate(Decile_income = log(Decile_income)) %>%
   pivot_wider(
@@ -304,8 +149,8 @@ policy_df <- mip_income_d %>%
     values_from = Decile_income
   ) %>% 
   mutate(
-    delta_income_policy = `650` - REF, # choose whether relative or absolute
-    delta_income_pol_rel = (`650` - REF)/REF
+    delta_income_policy = Paris - REF, # choose whether relative or absolute
+    delta_income_pol_rel = (Paris - REF)/REF
   ) %>% 
   group_by(Model, Region, Year) %>% 
   mutate(
@@ -320,14 +165,14 @@ mod_letters <- c("A", "E", "G", "I", "N", "r", "R", "W")
 mod_letters_utf <- unlist(lapply(mod_letters, utf8ToInt))
 
 
-ggplot(policy_df) + geom_point(aes(REF, (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + scale_shape_manual(name = "Model", values = mod_letters_utf) 
+ggplot(policy_df) + geom_point(aes(REF, (Paris-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + scale_shape_manual(name = "Model", values = mod_letters_utf) 
 
 
 #Johannes: show elasticities
-ggplot(policy_df) + geom_point(aes(REF/country_y_ref-1, (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + scale_x_continuous(labels = scales::percent) + scale_shape_manual(name = "Model", values = mod_letters_utf)
+ggplot(policy_df) + geom_point(aes(REF/country_y_ref-1, (Paris-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + scale_x_continuous(labels = scales::percent) + scale_shape_manual(name = "Model", values = mod_letters_utf)
 
 #by decile
-ggplot(policy_df) + geom_point(aes(as.numeric(gsub("D","",Decile)), (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + labs(x="Decile", y="Relative change from REF to 650") + scale_x_continuous(labels = seq(1,10), breaks=seq(1,10)) + scale_shape_manual(name = "Model", values = mod_letters_utf)
+ggplot(policy_df) + geom_point(aes(as.numeric(gsub("D","",Decile)), (Paris-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + labs(x="Decile", y="Relative change from REF to Paris") + scale_x_continuous(labels = seq(1,10), breaks=seq(1,10)) + scale_shape_manual(name = "Model", values = mod_letters_utf)
 saveplot("Policy Impact by Decile")
 
 

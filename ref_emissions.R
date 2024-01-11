@@ -125,32 +125,36 @@ ref_emissions <- ref_emissions %>%
 cum_global_emissions = cumsum(for_cum_5)) %>% 
   select(-for_cum, -for_cum_5)
 
+#make cumulative emissions start at 0 in 2020
+ref_emissions <- ref_emissions %>% group_by(Scenario,Model) %>% mutate(cum_global_emissions=cum_global_emissions-mean(cum_global_emissions[Year==2020]))
+
 # Stop AIM/PHI and E3ME cumulative emissions in 2050
 ref_emissions$cum_global_emissions[ref_emissions$Model=="AIM/PHI" & ref_emissions$Year > 2050] <- NA
 ref_emissions$cum_global_emissions[ref_emissions$Model=="E3ME" & ref_emissions$Year > 2050] <- NA
 
-#take only 650 scenarios for emissions plot
-ref_emissions <- ref_emissions %>% filter(!str_detect(Scenario, "1150")) %>% mutate(Scenario=gsub("redist", "epc", Scenario))
+
+#replace processed by ""
+ref_emissions$Scenario <- gsub("_post_process", "", ref_emissions$Scenario)
 
 
 ## Create scenario type for better plots
 ref_emissions <- ref_emissions %>% 
   mutate(Scenario_type = case_when(
     Scenario == "REF" | Scenario == "REF_impact" ~ "Reference",
-    Scenario == "650" | Scenario == "650_impact" | Scenario == "650_impact_epc" | Scenario == "650_epc" ~ "650",
-    Scenario == "1150" | Scenario == "1150_impact" | Scenario == "1150_impact_epc" | Scenario == "1150_epc" ~ "1150",
+    Scenario == "650" | Scenario == "650_impact" | Scenario == "650_impact_redist" | Scenario == "650_redist" ~ "650",
+    Scenario == "1150" | Scenario == "1150_impact" | Scenario == "1150_impact_redist" | Scenario == "1150_redist" ~ "1150",
     TRUE ~ as.character(Scenario)
   ))
 
 ## Create factor variable for budget
 ref_emissions <- ref_emissions %>% 
   mutate(budget = case_when (
-    Scenario == "650" | Scenario == "650_impact" | Scenario == "650_impact_epc" | Scenario == "650_epc" ~ 650,
-    Scenario == "1150" | Scenario == "1150_impact" | Scenario == "1150_impact_epc" | Scenario == "1150_epc" ~ 1150,
+    Scenario == "650" | Scenario == "650_impact" | Scenario == "650_impact_redist" | Scenario == "650_redist" ~ 650,
+    Scenario == "1150" | Scenario == "1150_impact" | Scenario == "1150_impact_redist" | Scenario == "1150_redist" ~ 1150,
   ))
 
 # Annual emissions, by scenario type
-p_fl <- ggplot(ref_emissions %>% 
+p_fl <- ggplot(ref_emissions %>% filter(!str_detect(Scenario, "1150")) %>% mutate(Scenario=gsub("redist", "epc", Scenario)) %>% 
                  mutate(Scenario_type = factor(Scenario_type, levels = c("Reference", "650", "1150")))) +
   geom_line(aes(x = Year, y = global_emissions/1000,
                 color = Model, linetype = Scenario)) +
@@ -161,7 +165,7 @@ p_fl <- ggplot(ref_emissions %>%
   theme_bw() 
 
 # Cumulative emissions, by scenario type
-p_st <- ggplot(ref_emissions %>% 
+p_st <- ggplot(ref_emissions %>% filter(!str_detect(Scenario, "1150")) %>% mutate(Scenario=gsub("redist", "epc", Scenario)) %>% 
                  mutate(Scenario_type = factor(Scenario_type, levels = c("Reference", "650", "1150")))) +
   geom_line(aes(x = Year, y = cum_global_emissions/1000,
                 color = Model, linetype = Scenario)) +
@@ -181,7 +185,7 @@ ref_emissions <- ref_emissions %>%
     dT_global = TCRE*(cum_global_emissions/(1000^2)) # convert to GtCO2 and then in per 1000
   )
 
-p_t <- ggplot(ref_emissions %>% 
+p_t <- ggplot(ref_emissions %>% filter(!str_detect(Scenario, "1150")) %>% mutate(Scenario=gsub("redist", "epc", Scenario)) %>% 
          mutate(Scenario_type = factor(Scenario_type, levels = c("Reference", "650", "1150")))) +
   geom_line(aes(x = Year, y = dT_global + 1.1,
                 color = Model, linetype = Scenario)) +

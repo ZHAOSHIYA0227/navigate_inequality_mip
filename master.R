@@ -27,8 +27,8 @@ df$to_excel("WP4_snapshot.xlsx")
 
 graphdir <- paste0("graphs_", measure_inequality)
 #use the function saveplot to save the graphs in the relative folders 
-figure_format <- "png"
-convert_pdftopng <- F #converts all created pdfs to png for better quality (needs pdftopng.exe in your PATH. Download from http://www.xpdfreader.com/download.html)
+figure_format <- "pdf"
+convert_pdftopng <- T #converts all created pdfs to png for better quality (needs pdftopng.exe in your PATH. Download from http://www.xpdfreader.com/download.html)
 saveplot <- function(plotname, text_size=18, width=12, height=8, plot_title = T, plot_theme=theme_bw()){
   if(!dir.exists(file.path(graphdir))){dir.create(file.path(graphdir))}
   print(last_plot() + plot_theme)

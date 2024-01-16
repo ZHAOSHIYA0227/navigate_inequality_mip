@@ -88,9 +88,12 @@ data_map_geometry <- data_for_map %>% ungroup() %>% full_join(world) %>% filter(
 ggplot(data = data_map_geometry) + borders("world", colour = "grey80", fill = NA) + geom_sf(aes(fill = gini_mean_change, geometry = geometry)) + scale_fill_gradient2(low="lightblue", high="red", mid = "grey", midpoint = 0, guide="colorbar",na.value="white", lim=c(-5,+2))+ ggtitle("Impact on the Gini index") + labs(fill = "Gini index change", x = "", y = "") + theme_bw() + theme(strip.background = element_rect(fill = "white"), legend.position = "bottom") + coord_sf(ylim = c(-50, 90))  + facet_grid(Scenario.y.nice ~ Year) + geom_sf_text(aes(label = sprintf("%+.1f", gini_mean_change) , geometry = geometry), colour = "black")
 #median
 ggplot(data = data_map_geometry) + borders("world", colour = "grey80", fill = NA) + geom_sf(aes(fill = gini_median_change, geometry = geometry)) + scale_fill_gradient2(low="lightblue", high="red", mid = "grey", midpoint = 0, guide="colorbar",na.value="white", lim=c(-3,+1))+ ggtitle("Impact on the Gini index [Model median]") + labs(fill = "Gini index change", x = "", y = "") + theme_bw() + theme(strip.background = element_rect(fill = "white"), legend.position = "bottom") + coord_sf(ylim = c(-50, 90))  + facet_grid(Scenario.y.nice ~ Year) + geom_sf_text(aes(label = sprintf("%+.1f", gini_median_change) , geometry = geometry), colour = "black", size=3.5) + theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank()) + theme(strip.text.y = element_text(size = 7))
+#update colors
+ggplot(data = data_map_geometry) + borders("world", colour = "grey80", fill = NA) + geom_sf(aes(fill = gini_median_change, geometry = geometry)) + ggtitle("Impact on the Gini index [Model median]") + labs(fill = "Gini index change", x = "", y = "") + theme_bw() + theme(strip.background = element_rect(fill = "white"), legend.position = "bottom") + coord_sf(ylim = c(-50, 90))  + facet_grid(Scenario.y.nice ~ Year) + geom_sf_text(aes(label = sprintf("%+.1f", gini_median_change) , geometry = geometry), colour = "black", size=3.5) + theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank()) + theme(strip.text.y = element_text(size = 7)) + scale_fill_gradient2(low="red", high="blue", mid = "grey", midpoint = 0, guide="colorbar",na.value="white", lim = c(-3, +1))
 g <- ggplot_gtable(ggplot_build(last_plot()+ theme(strip.text.y = element_text(colour = 'white', face = "bold")))); stripr <- which(grepl('strip-r', g$layout$name)); fills <- c("darkred","darkblue","darkgreen")
 k <- 1; for (i in stripr) {j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder)); g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]; k <- k+1;}
 grid::grid.draw(g)
+#saveplot("Gini map saveplot", width = 11, height = 7.5)
 ggsave(filename = file.path(graphdir, "Gini_map.png"), width = 11, height = 7.5, plot = g)  
 ggsave(filename = file.path(graphdir, "Gini_map.pdf"), width = 11, height = 7.5, plot = g)  
 
@@ -161,3 +164,52 @@ ggsave(filename = file.path(graphdir, "Welfare_violinplot_final_modeldifferences
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+#Figure 1 for 1150 "Weak Paris"
+#violinplot Gini aggregated over time
+ggplot(data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "Paris", "1150_redist", "Paris_redist", "1150_impact_redist", "Paris_impact_redist")) %>% filter(str_detect(Scenario.y, "1150")) %>% mutate(Scenario.y=gsub("1150", "Paris", Scenario.y)) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5, cbudget=gsub("[a-z_]","", Scenario.y)) %>% mutate(Scenario.y.nice=case_when(Scenario.y=="Paris" ~ "Climate Policy", Scenario.y=="Paris_redist" ~ "with EPC redistribution", Scenario.y=="Paris_impact_redist" ~ "and avoided Impacts"), Scenario.y.nice = fct_relevel(as.factor(Scenario.y.nice), c("Climate Policy", "with EPC redistribution", "and avoided Impacts"))) %>% arrange(Type)  %>% mutate(Model = factor(Model, levels =  unique(Model))) %>% mutate(Year=as.character(Year), Model_offset=as.factor(Model), Model_offset=as.numeric(Model_offset), Year=gsub("2100", "2075", Year))) + labs(x="", y="", title = "", color ="Model") + facet_grid(Scenario.y.nice ~ ., scales = "free")  + theme_bw() + geom_hline(yintercept = 0) + labs(y="Change in Gini from Reference [points]", x="", title="Impact on the Gini index by Model and Model type") + scale_shape_manual(values=seq(0,9)) + theme(strip.text.y = element_text(size = 6)) +geom_point(aes(x = as.numeric(Year)+(Model_offset-4.5)/1.0, y = 100*(value.x_Equality_index-value.y_Equality_index), color=Model, shape=Type)) + scale_x_continuous(breaks = c(2030, 2050, 2075), labels = c(2030, 2050, 2100)) + scale_shape_manual(values = c(15, 16, 17, 18))  + geom_text(data = data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "Paris", "1150_redist", "Paris_redist", "1150_impact_redist", "Paris_impact_redist")) %>% filter(str_detect(Scenario.y, "1150")) %>% mutate(Scenario.y=gsub("1150", "Paris", Scenario.y)) %>% filter(str_detect(Scenario.y, "Paris")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5, cbudget=gsub("[a-z_]","", Scenario.y)) %>% mutate(Scenario.y.nice=case_when(Scenario.y=="Paris" ~ "Climate Policy", Scenario.y=="Paris_redist" ~ "with EPC redistribution", Scenario.y=="Paris_impact_redist" ~ "and avoided Impacts"), Scenario.y.nice = fct_relevel(as.factor(Scenario.y.nice), c("Climate Policy", "with EPC redistribution", "and avoided Impacts"))) %>% group_by(Year, Scenario.y.nice, Model) %>% mutate(value=100*(value.x_Equality_index-value.y_Equality_index)) %>% summarize(value=mean(value)) %>% ungroup() %>% group_by(Year, Scenario.y.nice) %>% summarize(value=median(value)) %>% mutate(label = sprintf("%+.1f", value)) %>% ungroup() %>% mutate(Year=gsub(2100, 2075, Year)), aes(x=as.numeric(Year), y=value+.8*sign(value), label=label))
+
+require(ggh4x)
+g <- ggplot_gtable(ggplot_build(last_plot()+ theme(strip.text.y = element_text(colour = 'white', face = "bold")))); stripr <- which(grepl('strip-r', g$layout$name)); fills <- c("darkred","darkblue","darkgreen")
+k <- 1; for (i in stripr) {j <- which(grepl('rect', g$grobs[[i]]$grobs[[1]]$childrenOrder)); g$grobs[[i]]$grobs[[1]]$children[[j]]$gp$fill <- fills[k]; k <- k+1;}
+grid::grid.draw(g)
+ggsave(filename = file.path(graphdir, "Gini_violinplot_final_modeldifferences_1150.png"), width = 7, height = 5, plot = g)
+ggsave(filename = file.path(graphdir, "Gini_violinplot_final_modeldifferences_1150.pdf"), width = 7, height = 5, plot = g)
+
+#Gini with maps
+p_map_gini <- ggplot(data = data_welfare_effect_reordered %>% filter(Year %in% c(2030, 2050, 2070, 2100) & Region %in% countries_reported_max) %>% filter(Scenario.x=="REF" & Scenario.y %in% c("1150", "Paris", "1150_redist", "Paris_redist", "1150_impact_redist", "Paris_impact_redist")) %>% mutate(Scenario.y=gsub("1150", "Paris", Scenario.y)) %>% filter(str_detect(Scenario.y, "Paris")) %>% mutate(Scenario.y=factor(Scenario.y)) %>% mutate(Scenario.y.start = as.numeric(Scenario.y) - 0.5, Scenario.y.end = as.numeric(Scenario.y) + 0.5, cbudget=gsub("[a-z_]","", Scenario.y)) %>% mutate(Scenario.y.nice=case_when(Scenario.y=="Paris" ~ "Climate Policy", Scenario.y=="Paris_redist" ~ "with EPC redistribution", Scenario.y=="Paris_impact_redist" ~ "and avoided Impacts"), Scenario.y.nice = fct_relevel(as.factor(Scenario.y.nice), c("Climate Policy", "with EPC redistribution", "and avoided Impacts"))) %>% mutate(Year=as.character(Year)) %>% filter(Year %in% c(2030, 2050, 2100)) %>% ungroup() %>% group_by(Region, Year, Scenario.y.nice) %>% summarize(gini_mean_change=mean(100*(value.x_Equality_index-value.y_Equality_index)), gini_median_change=median(100*(value.x_Equality_index-value.y_Equality_index)), welfare_median_change=median(100*((`value.y_GDP|PPP`*value.y_Equality_index)/(`value.x_GDP|PPP`*value.x_Equality_index)-1)), gdp_median_change=median(100*((`value.y_GDP|PPP`)/(`value.x_GDP|PPP`)-1))) %>% mutate(iso_a3 = countrycode::countrycode(Region, "country.name", "iso3c")) %>% ungroup() %>% full_join(world) %>% filter(!is.na(gini_mean_change)) %>% as.data.frame() %>% filter(Scenario.y.nice=="and avoided Impacts" & Year < 2100)) + borders("world", colour = "grey80", fill = NA) + geom_sf(aes(fill = gini_median_change, geometry = geometry)) + scale_fill_gradient2(low="red", high="blue", mid = "grey", midpoint = 0, guide="colorbar",na.value="white") + ggtitle("") + labs(fill = "", x = "", y = "") + theme_bw() + theme(strip.background = element_rect(fill = "grey"), legend.position = "bottom") + coord_sf(ylim = c(-50, 90))  + facet_grid(. ~ Year) + geom_sf_text(aes(label = sprintf("%+.1f", gini_median_change) , geometry = geometry), colour = "black", size=3.5) + theme(axis.text.x = element_blank(), axis.text.y = element_blank(), axis.ticks = element_blank()) + theme(strip.text.y = element_text(size = 7), legend.position = c(.5,.15), legend.direction = "horizontal", legend.background=element_blank()) + theme(panel.spacing = unit(10, "lines"))
+#combined
+ggpubr::ggarrange(g, p_map_gini, ncol=1, nrow=2, heights = c(2.2, 1.1), align = "hv")
+ggsave(filename = file.path(graphdir, "Gini_violinplot_final_modeldifferences_withmaps_1150.png"), width = 8, height = 6)  
+ggsave(filename = file.path(graphdir, "Gini_violinplot_final_modeldifferences_withmaps_1150.pdf"), width = 8, height = 6) 
+
+
+
+
+
+
+
+
+#Gini baseline inequality plot
+gini_rao <- fread("C:\\Users\\Emmerling\\Dropbox (CMCC)\\EIEE\\WITCH_CODING\\witch-data\\articles\\ssp_gini.csv")
+gini_hist <- fread("C:\\Users\\Emmerling\\Dropbox (CMCC)\\EIEE\\WITCH_CODING\\witch-data\\inequality\\s_wiid\\s_wiid_data.csv")
+
+
+#plot the Gini for SSP2 for the countries in countries_reported_max
+library(ggbrace)
+ggplot() + geom_line(data = gini_rao %>% filter(iso3 %in% countrycode::countrycode(countries_reported_max, "country.name", "iso3c")) %>% filter(ssp=="ssp2" & year>= 2020), aes(year, gini, color=countrycode::countrycode(iso3, "iso3c", "country.name"))) + labs(x="", y="Gini index", color="Country") + geom_line(data = gini_hist %>% filter(iso3 %in% countrycode::countrycode(countries_reported_max, "country.name", "iso3c")) %>% filter(variable=="gini_swiid"), aes(year, value/100, color=countrycode::countrycode(iso3, "iso3c", "country.name")), linetype="dashed")  + ylim(0,1) + geom_label_repel(data = gini_rao %>% filter(iso3 %in% countrycode::countrycode(countries_reported_max, "country.name", "iso3c")) %>% filter(ssp=="ssp2" & year==2050-20+5*as.numeric(as.factor(iso3))), aes(year, gini, color=countrycode::countrycode(iso3, "iso3c", "country.name"), label=countrycode::countrycode(iso3, "iso3c", "country.name")), show.legend = FALSE) + scale_x_continuous(breaks = c(1960, 1980, 2000, 2020, 2050, 2100), limits = c(1960, 2100), minor_breaks = NULL) + geom_brace(aes(x=c(1960, 2018), y=c(0.8,0.85))) + geom_brace(aes(x=c(2020, 2100), y=c(0.8,0.85))) + geom_text(aes(1989,0.88, label="SWIID")) + geom_text(aes(2060,0.88, label="Rao et al. (2019)")) + ggtitle("Historical and projected baseline inequality")
+saveplot("Gini baseline", width = 8, height = 6)
+
+
+  
+  

@@ -6,18 +6,29 @@ library(stargazer)
 
 #### Load deciles data ####
 
-#check if plotgdx_iiasadb.R has been run before)
+#check if master.R has been run before)
 if(!exists("measure_inequality")){
 measure_inequality <- "Consumption"
 graphdir <- paste0("graphs_", measure_inequality)
-load(here("inequality_mip_full.Rdata"))
+mip_data <- readRDS(here("inequality_mip_full.Rdata"))
+}
+
+
+graphdir <- paste0("graphs_", measure_inequality)
+#use the function saveplot to save the graphs in the relative folders 
+figure_format <- "png"
+convert_pdftopng <- F #converts all created pdfs to png for better quality (needs pdftopng.exe in your PATH. Download from http://www.xpdfreader.com/download.html)
+saveplot <- function(plotname, text_size=12, width=12, height=8, plot_title = T, plot_theme=theme_bw()){
+  if(!dir.exists(file.path(graphdir))){dir.create(file.path(graphdir))}
+  print(last_plot() + plot_theme)
+  ggsave(filename=file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", figure_format)), plot = if(plot_title){last_plot()}else{last_plot()} + theme(text = element_text(size=text_size)), width=width, height=height, dpi = "print")
+  if(figure_format=="pdf" & convert_pdftopng) shell(str_glue('pdftopng.exe {file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", figure_format))} - > {file.path(graphdir, paste0(as.character(gsub(" ", "_", plotname)),".", "png"))}'))
 }
 
 
 theme_set(theme_minimal(base_size = 12))
 
-mip_data <- iiasadb_data
-
+# mip_data <- iiasadb_data
 
 # Decile incomes data
 mip_income_d <- subset(mip_data, grepl(str_glue("{measure_inequality}\\|D"), mip_data$Variable)) %>% 
@@ -35,7 +46,6 @@ pop <- mip_data %>%
   pivot_wider(names_from = "Variable",
               values_from = "value")
 
-
 gdp_ppp <- mip_data %>% 
   filter(Variable == "GDP|PPP") %>% 
   pivot_wider(names_from = "Variable",
@@ -46,16 +56,39 @@ gdp_ppp <- mip_data %>%
     pop_total = Population*10^6, # convert from millions (like WB)
     gdp_pc = gdp_ppp_dollars/pop_total,
     lgdp_pc = log(gdp_ppp_dollars/pop_total) 
-  ) 
+  )
+
+# Decile columns are list, so first convert them to numeric columns
+# then append back
+
+conv_list = function (x) {
+  pippo <- x %>% 
+    set_names(seq(1, nrow(mip_income_d), by = 1)) %>% 
+    bind_rows()
+  
+  pippo <- pippo[1,]
+  
+  pippo <- data.frame(x = t(pippo))  
+}
+
+prova_list <- list()
+
+prova_list <- lapply(mip_income_d[,5:14],
+                     conv_list)
+
+decile_cols <- prova_list %>% bind_cols() 
+
+names(decile_cols) <- names(prova_list)
+
+mip_income_d <- mip_income_d %>% select(Scenario:Year) %>% cbind(decile_cols)
 
 
 # compute income levels by decile
 mip_income_d <- mip_income_d %>% 
-    mutate_at(vars(`Income|D1`:`Income|D9`), funs(map(., as.character) %>% map(as.numeric))) %>% 
-    unnest(`Income|D1`:`Income|D9`) %>% 
   full_join(gdp_ppp, by = c("Scenario", "Model", "Region", "Year")) %>% 
-  mutate_at(vars(`Income|D1`:`Income|D9`), funs(level = gdp_pc*./100))
+    mutate_at(vars(`Income|D1`:`Income|D9`), funs(level = gdp_pc*./10))
   
+library("arrow")
 source("read_coefs_downscaling.R")
 
 # Select only the 10 common regions
@@ -100,10 +133,15 @@ mip_income_d <- mip_income_d %>%
   ) %>% 
   filter(Year >= 2020)
 
+
+
+
+
+
 #### Compute income elasticity of policy impacts ####
 
 policy_df <- mip_income_d %>% 
-  filter(Scenario == "REF" | Scenario == "650") %>% 
+  filter(Scenario == "REF" | Scenario == "Paris") %>% 
   select(Scenario, Model, Region, Year, Decile, Decile_income) %>% 
   # mutate(Decile_income = log(Decile_income)) %>%
   pivot_wider(
@@ -111,48 +149,40 @@ policy_df <- mip_income_d %>%
     values_from = Decile_income
   ) %>% 
   mutate(
-    delta_income_policy = (`650` - REF)/REF
+    delta_income_policy = Paris - REF, # choose whether relative or absolute
+    delta_income_pol_rel = (Paris - REF)/REF
   ) %>% 
   group_by(Model, Region, Year) %>% 
   mutate(
-    country_y_ref = sum(REF, na.rm = T),
+    country_y_ref = mean(REF, na.rm = T),
     REFrel = REF/country_y_ref
   ) %>% 
-  filter(Year >= 2020 & Year <= 2050) 
+  filter(Year >= 2020 & Year <= 2050)
 
 #visual
-ggplot(policy_df) + geom_point(aes(REF, (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent)
+mod_letters <- c("A", "E", "G", "I", "N", "r", "R", "W")
+
+mod_letters_utf <- unlist(lapply(mod_letters, utf8ToInt))
+
+
+ggplot(policy_df) + geom_point(aes(REF, (Paris-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + scale_shape_manual(name = "Model", values = mod_letters_utf) 
+
+
+#Johannes: show elasticities
+ggplot(policy_df) + geom_point(aes(REF/country_y_ref-1, (Paris-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + scale_x_continuous(labels = scales::percent) + scale_shape_manual(name = "Model", values = mod_letters_utf)
+
 #by decile
-ggplot(policy_df) + geom_point(aes(as.numeric(gsub("D","",Decile)), (`650`-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + labs(x="Decile", y="Relative change from REF to 650") + scale_x_continuous(labels = seq(1,10), breaks=seq(1,10))
+ggplot(policy_df) + geom_point(aes(as.numeric(gsub("D","",Decile)), (Paris-REF)/REF, color=Region, shape=Model, alpha=Year)) + scale_y_continuous(labels = scales::percent) + labs(x="Decile", y="Relative change from REF to Paris") + scale_x_continuous(labels = seq(1,10), breaks=seq(1,10)) + scale_shape_manual(name = "Model", values = mod_letters_utf)
 saveplot("Policy Impact by Decile")
 
 
 
 # Regressing difference in decile-level income due to policy on income levels under REF
-policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model - 1,
-                        data = policy_df)
-
-############################################################################################
-## a missing level of E3ME in the model
-# policy_impact_reg <- lm(delta_income_policy ~ REFrel + Model - 1,
-#                         data = policy_df %>% filter(Model == "E3ME"))
-# 
-# colnames(aa)
-# unique(aa$Variable)
-# colnames(mip_data)
-# unique(mip_data$Scenario)
-# unique(mip_data$Model)
-# 
-# aa <- subset(mip_data, grepl(str_glue("{measure_inequality}\\|D"), mip_data$Variable)) %>% 
-#   filter(Model == "NICE") %>% 
-#   pivot_wider(names_from = "Variable",
-#               values_from = "value") #%>% filter(Model == "E3ME")
-# 
-# bb <- aa %>% 
-#   filter(startsWith(Variable, "Income|")) %>% view
-#   pivot_longer()
-
-############################################################################################
+policy_impact_reg <- lm(log(delta_income_policy) ~ log(REF) + Model + Region +
+                          factor(Year),
+                        data = policy_df %>% 
+                          filter(delta_income_policy < 0) %>% 
+                          mutate(delta_income_policy = -1*delta_income_policy) %>% mutate(Model=as.factor(Model), Model=relevel(Model, ref="AIM"), Region=as.factor(Region), Region=relevel(Region, ref="United States")))
 
 stargazer(policy_impact_reg,
           type = "latex",
@@ -163,23 +193,98 @@ stargazer(policy_impact_reg,
           single.row = T,
           out = paste0(graphdir, "/policy_impact_elast.tex"))
 
+hutils::replace_pattern_in("log\\(REF\\)", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
 hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
-hutils::replace_pattern_in("REFrel", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
+hutils::replace_pattern_in("factor\\(Year\\)","", file_pattern="*.tex", basedir = graphdir)
+# reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata = policy_df)) %>% filter(!is.na(...10))
+# table(reg_policy_obs$Model, reg_policy_obs$Region)
 
-# colnames(policy_df)
-# unique(policy_df$Model)
-# summary(policy_impact_reg)
 
-# aa <- predict(object = policy_impact_reg, newdata = policy_df)
+### Plot policy impact elasticity across regions
 
-reg_policy_obs <- cbind(policy_df, predict(object = policy_impact_reg, newdata = policy_df)) %>% filter(!is.na(...10))
-table(reg_policy_obs$Model, reg_policy_obs$Region)
+# function to compute policy elasticity in each region
+policy_elast = function(r) {
+  
+  df_tmp <- policy_df %>% mutate(Model=as.factor(Model), Model=relevel(Model, ref="AIM")) %>% 
+    filter(Region == r)
+  
+  if(r == "Canada") {
+    
+    df_tmp <- df_tmp %>% filter(Model != "WITCH")
+    
+    reg_tmp <- lm(log(delta_income_policy) ~ log(REF) +
+                    factor(Year),
+                  data = df_tmp %>% 
+                    filter(delta_income_policy < 0) %>% 
+                    mutate(delta_income_policy = -1*delta_income_policy))
+    
+    }
+  
+  else {
+    
+    reg_tmp <- lm(log(delta_income_policy) ~ log(REF) + Model +
+                    factor(Year),
+                  data = df_tmp %>% 
+                    filter(delta_income_policy < 0) %>% 
+                    mutate(delta_income_policy = -1*delta_income_policy))
+    
+    df_tmp$policy_elast <- coefficients(reg_tmp)[2]
+    
+  }
+  
+  stargazer(reg_tmp,
+            type = "latex",
+            dep.var.labels = "Change in decile income, from policy",
+            model.names = FALSE,
+            header=F,
+            float=T,
+            single.row = T,
+            out = paste0(graphdir, "/", r, "_", "policy_impact_elast.tex"))
+  
+  hutils::replace_pattern_in("log(REF)", "Deciles under Reference scenario", file_pattern="*.tex", basedir = graphdir)
+  hutils::replace_pattern_in("Model|Region","", file_pattern="*.tex", basedir = graphdir)
+  hutils::replace_pattern_in("factor(Year)","", file_pattern="*.tex", basedir = graphdir)
+  
+  
+  return(df_tmp)
+}
+
+policy_elast_df_plot <- list()
+policy_elast_df_plot <- lapply(unique(policy_df$Region), policy_elast) %>% 
+  bind_rows()
+
+# merge with 2020 GDP per capita, in PPP $
+gdp_pc <- mip_income_d %>% 
+  filter(Year == 2020) %>% 
+  select(Region, gdp_pc) %>% 
+  group_by(Region) %>% 
+  slice_head(n = 1) %>% 
+  ungroup() %>% 
+  select(Region, gdp_pc)
+
+
+library(ggrepel)
+
+ggplot(policy_elast_df_plot %>% 
+         full_join(gdp_pc, by = "Region") %>% 
+         group_by(Region) %>% 
+         slice_head(n = 1),
+       aes(x = gdp_pc, y = policy_elast, color = Region, label = Region)) +
+  geom_hline(yintercept = 1, linetype = "solid", color = "grey50") +
+  geom_point()   + # Show dots
+  geom_label_repel(box.padding   = 0.35, 
+                   point.padding = 0.5,
+                   segment.color = 'grey50') +
+
+  coord_cartesian(ylim = c(0.85, 1.05)) +
+  guides(label = "none", color="none") +
+  labs(x = "GDP per capita in 2020 (PPP)",
+       y = "Climate Policy Income Elasticity") +
+  scale_x_continuous(labels = scales::dollar)
+saveplot("Policy Elasticity by Country Income", width = 8, height = 6)
+
 
 #### Compute damages: region-level ####
-
-mean_rm = function(x){
-  mean(x, na.rm = T)
-}
 
 
 # Load coefficients for decile impact functions
@@ -210,9 +315,6 @@ mip_income_d <- mip_income_d %>%
     t = (Year - 2015)/5 # +1 
   )
 
-# # try only one scenario
-# mip_income_d <- mip_income_d %>% 
-#   filter(Scenario == "REF")
 
 # counterfactual growth rates of regional GDP
 ## creating a region-level dataframe (re-merge later)
@@ -236,6 +338,7 @@ gdp_start <- mip_income_reg %>%
 mip_income_reg <- mip_income_reg %>% 
   full_join(gdp_start, by = c("Scenario", "Model", "Region", "Year"))
 
+
 # damage factor under BHM specification
 mip_income_reg <- mip_income_reg %>% 
   group_by(Scenario, Model, Region) %>% 
@@ -243,12 +346,22 @@ mip_income_reg <- mip_income_reg %>%
     d = (temp_regional - temp_start)*b1_bhm + (temp_regional^2 - temp_start^2)*b2_bhm
   )
 
+# Separate models that go until 2050 from the others (until 2100)
+mip_income_2050 <- mip_income_reg %>% 
+  filter(Model == "E3ME")
+
+
+mip_income_reg <- mip_income_reg %>% 
+  filter(Model != "E3ME")
+
 
 # Loops for growth effect on regional GDP
 
-time_length <- length(unique(mip_income_reg$t))
+time_length <- as.numeric(length(unique(mip_income_reg$t)))
 
 ### under BHM specification
+
+# For models with results until 2100
 mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==1] = mip_income_reg$gdp_start[mip_income_reg$t==1]
 
 for (i in 2:time_length) {
@@ -256,7 +369,19 @@ for (i in 2:time_length) {
                                                              + mip_income_reg$d[mip_income_reg$t==i])*mip_income_reg$gdp_with_impact_bhm[mip_income_reg$t==i-1]
 }
 
+
+# For models with results until 2050
+mip_income_2050$gdp_with_impact_bhm[mip_income_2050$t==1] = mip_income_2050$gdp_start[mip_income_2050$t==1]
+
+for (i in 2:7) {
+  mip_income_2050$gdp_with_impact_bhm[mip_income_2050$t==i] = (1 + mip_income_2050$growth_counter[mip_income_2050$t==i]
+                                                               + mip_income_2050$d[mip_income_2050$t==i])*mip_income_2050$gdp_with_impact_bhm[mip_income_2050$t==i-1]
+}
+
+
 ### under Adaptation specification
+
+# For models until 2100
 mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==1] = mip_income_reg$gdp_start[mip_income_reg$t==1]
 
 # loop for growth rates, includes d factor inside
@@ -266,14 +391,50 @@ for (i in 2:time_length) {
     # growth rates without impacts, counterfactual
     (1 + mip_income_reg$growth_counter[mip_income_reg$t==i] +
        # damage factor
-       (mip_income_reg$temp_regional[mip_income_reg$t==i] - mip_income_reg$temp_start[mip_income_reg$t==i])*(b1 + a1*rollapply( log(mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]),  
-                                                                                                                                5, mean_rm, na.pad = T, align = "left")) +
-       ((mip_income_reg$temp_regional[mip_income_reg$t==i])^2 - (mip_income_reg$temp_start[mip_income_reg$t==i])^2)*(b2 + a2*rollapply(log( mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]),
-                                                                                                                                       5, mean_rm, na.pad = T, align = "left"))
+       (mip_income_reg$temp_regional[mip_income_reg$t==i] - mip_income_reg$temp_start[mip_income_reg$t==i])*(b1 + a1*log(mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1])) +
+       ((mip_income_reg$temp_regional[mip_income_reg$t==i])^2 - (mip_income_reg$temp_start[mip_income_reg$t==i])^2)*(b2 + a2*log(mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]))
     )*
     mip_income_reg$gdp_with_impact_ada[mip_income_reg$t==i-1]
 }
 
+# For models until 2050
+mip_income_2050$gdp_with_impact_ada[mip_income_2050$t==1] = mip_income_2050$gdp_start[mip_income_2050$t==1]
+
+# loop for growth rates, includes d factor inside
+for (i in 2:time_length) {
+  
+  mip_income_2050$gdp_with_impact_ada[mip_income_2050$t==i] =
+    # growth rates without impacts, counterfactual
+    (1 + mip_income_2050$growth_counter[mip_income_2050$t==i] +
+       # damage factor
+       (mip_income_2050$temp_regional[mip_income_2050$t==i] - mip_income_2050$temp_start[mip_income_2050$t==i])*(b1 + a1*log(mip_income_2050$gdp_with_impact_ada[mip_income_2050$t==i-1])) +
+       ((mip_income_2050$temp_regional[mip_income_2050$t==i])^2 - (mip_income_2050$temp_start[mip_income_2050$t==i])^2)*(b2 + a2*log(mip_income_2050$gdp_with_impact_ada[mip_income_2050$t==i-1]))
+    )*
+    mip_income_2050$gdp_with_impact_ada[mip_income_2050$t==i-1]
+}
+
+mip_income_reg <- rbind(mip_income_reg, mip_income_2050) # append them back together
+
+mip_income_reg <- mip_income_reg %>% 
+  group_by(Scenario, Model, Region) %>% 
+  mutate(
+    damages_bhm = gdp_pc - gdp_with_impact_bhm,
+    damages_ada = gdp_pc - gdp_with_impact_ada,
+    dam_frac_bhm = (gdp_pc - gdp_with_impact_bhm)/gdp_pc,
+    dam_frac_ada = (gdp_pc - gdp_with_impact_ada)/gdp_pc
+  )
+
+# ggplot(mip_income_reg %>% filter(Scenario == "REF"),
+#        aes(x = Year, y = dam_frac_bhm, color = Model)) +
+#   geom_line() +
+#   facet_wrap(~ Region, ncol = 5) +
+#   theme_bw()
+# 
+# ggplot(mip_income_reg %>% filter(Scenario == "REF"),
+#        aes(x = Year, y = dam_frac_ada, color = Model)) +
+#   geom_line() +
+#   facet_wrap(~ Region, ncol = 5) +
+#   theme_bw()
 
 #### Compute damages: decile-level ####
 
@@ -283,6 +444,9 @@ mip_income_d <- mip_income_d %>%
   mutate(
     dist_growth_counter = Decile_income/lag(Decile_income, n=1) - 1
   )
+
+# set growth in initial period to 0
+mip_income_d$dist_growth_counter[is.na(mip_income_d$dist_growth_counter)] <- 0
 
 
 # Compute impacts on deciles with growth effect
@@ -309,9 +473,9 @@ mip_income_d$dist_num <- as.numeric(gsub(".*?([0-9]+).*", "\\1",
 # Compute damage factor on growth rates of decile income
 for(i in 1:10) {
   mip_income_d$d_dist_bhm[mip_income_d$dist_num == i] <-  (mip_income_d$temp_regional[mip_income_d$dist_num == i]
-                                                           - mip_income_d$temp_start[mip_income_d$dist_num == i])*coefs_bhm[i,2] +
+                                                           - mip_income_d$temp_start[mip_income_d$dist_num == i])*coefs_bhm[i,4] +
     (mip_income_d$temp_regional[mip_income_d$dist_num == i]^2 -
-       mip_income_d$temp_start[mip_income_d$dist_num == i]^2)*coefs_bhm[i,3]
+       mip_income_d$temp_start[mip_income_d$dist_num == i]^2)*coefs_bhm[i,5]
   
 }
 
@@ -321,15 +485,33 @@ for(j in 1:10) {
 }
 
 # Compute impacted decile income for every period
-for (i in 2:time_length) {
+
+### Separately for models that go until 2050 and the others (until 2100)
+mip_income_d2050 <- mip_income_d %>% 
+  filter(Model == "E3ME")
+
+mip_income_d <- mip_income_d %>% 
+  filter(Model != "E3ME")
+
+### For models until 2100
+
+for (i in 2:17) {
   for (j in 1:10) {
     mip_income_d$Dec_with_impact_bhm[mip_income_d$t==i & mip_income_d$dist_num==j] = (1 + mip_income_d$dist_growth_counter[mip_income_d$t==i & mip_income_d$dist_num==j] +
                                                                                         mip_income_d$d_dist_bhm[mip_income_d$t==i & mip_income_d$dist_num==j])*mip_income_d$Dec_with_impact_bhm[mip_income_d$t==i-1 & mip_income_d$dist_num==j]
   }
 }
 
+### For models until 2050
+for (i in 2:7) {
+  for (j in 1:10) {
+    mip_income_d2050$Dec_with_impact_bhm[mip_income_d2050$t==i & mip_income_d2050$dist_num==j] = (1 + mip_income_d2050$dist_growth_counter[mip_income_d2050$t==i & mip_income_d2050$dist_num==j] +
+                                                                                                    mip_income_d2050$d_dist_bhm[mip_income_d2050$t==i & mip_income_d2050$dist_num==j])*mip_income_d2050$Dec_with_impact_bhm[mip_income_d2050$t==i-1 & mip_income_d2050$dist_num==j]
+  }
+}
+
 # Compute damages, absolute and relative
-mip_income_d <- mip_income_d %>% 
+mip_income_d <- rbind(mip_income_d, mip_income_d2050) %>% 
   group_by(Scenario, Model, Region, Decile) %>% 
   mutate(
     damages_dist_bhm = Decile_income - Dec_with_impact_bhm,
@@ -368,6 +550,31 @@ for(j in 1:10) {
 }
 
 # Compute impacted decile income for every period, with d factor inside loop
+
+### Separately for models that go until 2050 and the others (until 2100)
+mip_income_d2050 <- mip_income_d %>% 
+  filter(Model == "E3ME")
+
+for (i in 2:time_length) {
+  for (j in 1:10) {
+    mip_income_d2050$Dec_with_impact_ada[mip_income_d2050$t==i & mip_income_d2050$dist_num==j] =
+      (1 + 
+         # counterfactual growth rate
+         mip_income_d2050$dist_growth_counter[mip_income_d2050$t==i & mip_income_d2050$dist_num==j] +
+         # damage factor
+         (mip_income_d2050$temp_regional[mip_income_d2050$t==i & mip_income_d2050$dist_num==j] - mip_income_d2050$temp_start[mip_income_d2050$t==i & mip_income_d2050$dist_num==j])*
+         (coefs_ada[j,2] + coefs_ada[j,4]*log(mip_income_d2050$gdp_with_impact_ada[mip_income_d2050$t==i-1 & mip_income_d2050$dist_num==j])) +
+         (mip_income_d2050$temp_regional[mip_income_d2050$t==i & mip_income_d2050$dist_num==j]^2 - mip_income_d2050$temp_start[mip_income_d2050$t==i & mip_income_d2050$dist_num==j]^2)*
+         (coefs_ada[j,3] + coefs_ada[j,5]*log(mip_income_d2050$gdp_with_impact_ada[mip_income_d2050$t==i-1 & mip_income_d2050$dist_num==j]))
+      )*
+      mip_income_d2050$Dec_with_impact_ada[mip_income_d2050$t==i-1 & mip_income_d2050$dist_num==j]
+  }
+}
+
+
+mip_income_d <- mip_income_d %>% 
+  filter(Model != "E3ME")
+
 for (i in 2:time_length) {
   for (j in 1:10) {
     mip_income_d$Dec_with_impact_ada[mip_income_d$t==i & mip_income_d$dist_num==j] =
@@ -376,18 +583,16 @@ for (i in 2:time_length) {
          mip_income_d$dist_growth_counter[mip_income_d$t==i & mip_income_d$dist_num==j] +
          # damage factor
          (mip_income_d$temp_regional[mip_income_d$t==i & mip_income_d$dist_num==j] - mip_income_d$temp_start[mip_income_d$t==i & mip_income_d$dist_num==j])*
-         (coefs_ada[j,2] + coefs_ada[j,4]*rollapply(log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]),
-                                                    5,  mean_rm, na.pad = T, align = "left")) +
+         (coefs_ada[j,2] + coefs_ada[j,4]*log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j])) +
          (mip_income_d$temp_regional[mip_income_d$t==i & mip_income_d$dist_num==j]^2 - mip_income_d$temp_start[mip_income_d$t==i & mip_income_d$dist_num==j]^2)*
-         (coefs_ada[j,3] + coefs_ada[j,5]*rollapply(log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]),
-                                                    5,  mean_rm, na.pad = T, align = "left"))
+         (coefs_ada[j,3] + coefs_ada[j,5]*log(mip_income_d$gdp_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]))
       )*
       mip_income_d$Dec_with_impact_ada[mip_income_d$t==i-1 & mip_income_d$dist_num==j]
   }
 }
 
 # Compute damages, absolute and relative
-mip_income_d <- mip_income_d %>% 
+mip_income_d <- rbind(mip_income_d, mip_income_d2050) %>% 
   group_by(Scenario, Model, Region, Decile) %>% 
   mutate(
     damages_dist_ada = Decile_income - Dec_with_impact_ada,
@@ -411,6 +616,18 @@ mip_income_d <- mip_income_d %>%
     delta_gini_ada = gini_impact_ada - gini_counter
   )
 
+# ggplot(mip_income_d %>% filter(Scenario == "REF"),
+#        aes(x = Year, y = Reg_damages_bhm_frac, color = Model)) +
+#   geom_line() +
+#   facet_wrap(~ Region, ncol = 5) +
+#   theme_bw()
+# 
+# 
+# ggplot(mip_income_d %>% filter(Scenario == "REF"),
+#        aes(x = Year, y = delta_gini_ada, color = Model)) +
+#   geom_line() +
+#   facet_wrap(~ Region, ncol = 5) +
+#   theme_bw()
 
 #### Create dataframe with post-processed impacts, for all models and scenarios ####
 
